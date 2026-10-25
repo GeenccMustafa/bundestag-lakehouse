@@ -1,0 +1,3 @@
+repo: astronomer/agents
+path: skills/cosmos-dbt-core
+commit: 486ee63d01f8126c52fbc92c36cd36ec31708dcd

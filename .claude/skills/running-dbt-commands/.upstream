@@ -1,0 +1,3 @@
+repo: dbt-labs/dbt-agent-skills
+path: skills/dbt/skills/running-dbt-commands
+commit: b8facde20b7a92c40ce3e6b86b71c4b92aa44040
