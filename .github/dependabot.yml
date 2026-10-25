@@ -18,3 +18,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # A Postgres major upgrade needs a dump/restore of Airflow's metadata DB; do it by hand.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]

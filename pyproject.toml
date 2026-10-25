@@ -11,6 +11,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "boto3-stubs[s3]>=1.43.118",
+    "dbt-core>=1.10",
+    "dbt-duckdb>=1.9",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
