@@ -64,13 +64,17 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # Airflow metadata DB. No published port: only containers on the Compose network need it.
+  # Airflow metadata DB and the DuckLake catalog (separate database and role, see
+  # postgres-init). Published on localhost:5433 so dbt and DuckDB on the host can reach the
+  # DuckLake catalog; 5433 avoids clashing with a locally installed Postgres.
   postgres:
     image: postgres:16.15-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
       POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -80,6 +84,33 @@ services:
       retries: 5
       start_period: 5s
     restart: unless-stopped
+
+  # One-shot: creates the DuckLake catalog role + database (idempotent), then exits.
+  postgres-init:
+    image: postgres:16.15-alpine
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?set in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      PGDATABASE: ${POSTGRES_DB:?set in .env}
+    command:
+      - psql
+      - -v
+      - ON_ERROR_STOP=1
+      - -v
+      - ducklake_user=${DUCKLAKE_PG_USER:?set in .env}
+      - -v
+      - ducklake_password=${DUCKLAKE_PG_PASSWORD:?set in .env}
+      - -v
+      - ducklake_db=${DUCKLAKE_PG_DB:?set in .env}
+      - -f
+      - /init/init-ducklake.sql
+    volumes:
+      - ./docker/postgres/init-ducklake.sql:/init/init-ducklake.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   # One-shot: migrates the DB, creates the admin user, fixes folder ownership, then exits.
   airflow-init:
