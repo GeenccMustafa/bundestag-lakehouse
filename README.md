@@ -29,4 +29,14 @@ cp .env.example .env             # then replace every change-me value
 docker compose up -d             # RustFS :9001, Airflow :8080 (localhost only)
 ```
 
+Load data into Bronze (RustFS bucket `lakehouse`):
+
+```bash
+uv run --env-file .env python -m ingestion backfill --days 7   # one idempotent run per day
+uv run --env-file .env python -m ingestion extract              # incremental from watermarks
+uv run --env-file .env python -m ingestion status
+```
+
+In Airflow, the `dip_ingestion` DAG runs daily, one task per DIP entity.
+
 Design decisions are recorded in [`docs/adr/`](docs/adr/).

@@ -1,0 +1,108 @@
+{
+  "numFound": 3,
+  "cursor": "CURSOR_1",
+  "documents": [
+    {
+      "id": "340791",
+      "vorgangstyp": "Rechtsverordnung (Außenwirtschaftsrecht)",
+      "typ": "Vorgang",
+      "wahlperiode": 21,
+      "initiative": [
+        "Bundesregierung"
+      ],
+      "aktualisiert": "2026-10-23T14:13:27+02:00",
+      "verkuendung": [
+        {
+          "jahrgang": "2026",
+          "heftnummer": "300",
+          "ausfertigungsdatum": "2026-10-14",
+          "verkuendungsdatum": "2026-10-23",
+          "einleitungstext": "Verordnung",
+          "pdf_url": "https://www.recht.bund.de/eli/bund/BGBl_1/2026/300",
+          "verkuendungsblatt_bezeichnung": "Bundesgesetzblatt Teil I",
+          "verkuendungsblatt_kuerzel": "BGBl I",
+          "fundstelle": "BGBl I 2026, 300"
+        }
+      ],
+      "titel": "Dreiundzwanzigste Verordnung zur Änderung der Außenwirtschaftsverordnung - aufhebbare Verordnung",
+      "datum": "2026-10-23"
+    },
+    {
+      "id": "340790",
+      "beratungsstand": "Noch nicht beantwortet",
+      "vorgangstyp": "Kleine Anfrage",
+      "typ": "Vorgang",
+      "wahlperiode": 21,
+      "initiative": [
+        "Fraktion DIE LINKE"
+      ],
+      "aktualisiert": "2026-10-23T13:36:26+02:00",
+      "titel": "Auswirkungen der Kinder- und Jugendhilfestrukturreform auf den Kitabetrieb und dessen inklusive Ausgestaltung",
+      "datum": "2026-10-23"
+    },
+    {
+      "id": "340772",
+      "beratungsstand": "Noch nicht beantwortet",
+      "vorgangstyp": "Kleine Anfrage",
+      "sachgebiet": [
+        "Arbeit und Beschäftigung",
+        "Wirtschaft"
+      ],
+      "typ": "Vorgang",
+      "wahlperiode": 21,
+      "initiative": [
+        "Fraktion DIE LINKE"
+      ],
+      "aktualisiert": "2026-10-23T13:02:48+02:00",
+      "deskriptor": [
+        {
+          "fundstelle": false,
+          "name": "Arbeitgeber",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Arbeitnehmerschutz",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Arbeitszeit",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": true,
+          "name": "Arbeitszeitgesetz",
+          "typ": "Rechtsmaterialien"
+        },
+        {
+          "fundstelle": false,
+          "name": "Aufsichtsbehörde",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Auskunftspflicht",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Betriebsprüfung",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Personalausstattung",
+          "typ": "Sachbegriffe"
+        },
+        {
+          "fundstelle": false,
+          "name": "Wochenendarbeit",
+          "typ": "Sachbegriffe"
+        }
+      ],
+      "titel": "Kontrollen zur Einhaltung des Arbeitszeitgesetzes (Nachfrage zur Antwort der Bundesregierung auf die Kleine Anfrage auf Bundestagsdrucksache 21/7413)",
+      "datum": "2026-10-23"
+    }
+  ]
+}
