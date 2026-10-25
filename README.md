@@ -69,6 +69,7 @@ writes, time travel and many concurrent readers — no database file to lock
 | dbt-core + dbt-duckdb · DuckDB | SQL transformations, tests, docs; DuckDB reads Bronze straight from S3 |
 | DuckLake (catalog in Postgres) | Table format for Silver/Gold: Parquet in S3 + snapshots, time travel |
 | Docker Compose | Runs RustFS, Airflow and Postgres (Airflow metadata + DuckLake catalog) locally |
+| pgAdmin | Web UI for Postgres, both databases pre-registered |
 | uv · ruff · pre-commit · GitHub Actions | Dependencies, linting, secret scanning, CI |
 
 ## Getting started
@@ -77,7 +78,7 @@ writes, time travel and many concurrent readers — no database file to lock
 uv sync                          # Python env + dev tools
 uv run pre-commit install        # run hooks on every commit
 cp .env.example .env             # then replace every change-me value
-docker compose up -d             # RustFS :9001, Airflow :8080 (localhost only)
+docker compose up -d             # RustFS :9001, Airflow :8080, pgAdmin :5050 (localhost only)
 ```
 
 Load data into Bronze:
@@ -105,6 +106,15 @@ Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
 uv run --env-file .env python scripts/duckdb_ui.py   # Ctrl+C to stop
 ```
 
+Local web UIs (all bound to localhost):
+
+| URL | What |
+|-----|------|
+| http://localhost:8080 | Airflow (login from `.env`: `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD`) |
+| http://localhost:9001 | RustFS console (`RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`) |
+| http://localhost:5050 | pgAdmin: Airflow metadata DB and DuckLake catalog, no login needed |
+| http://localhost:4213 | DuckDB UI, started by `scripts/duckdb_ui.py` |
+
 DuckDB is embedded: there is no database server. Every process (dbt, the UI, later the
 dashboard) runs its own in-memory DuckDB and attaches the shared DuckLake catalog, so they can
 all work at the same time.
@@ -118,7 +128,7 @@ airflow/dags/       Airflow DAGs
 dbt/                dbt project: sources, bronze views, silver models, tests
 docs/adr/           Architecture decision records
 tests/              Python unit tests
-docker/              Container init scripts (DuckLake catalog)
+docker/             Container config (DuckLake catalog init, pgAdmin servers)
 docker-compose.yml  Local stack
 ```
 
