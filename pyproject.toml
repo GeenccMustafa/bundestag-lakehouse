@@ -3,10 +3,14 @@ name = "bundestag-lakehouse"
 version = "0.1.0"
 description = "Bronze → Silver → Gold lakehouse on the Bundestag DIP API"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "boto3>=1.40",
+    "httpx>=0.28",
+]
 
 [dependency-groups]
 dev = [
+    "boto3-stubs[s3]>=1.43.118",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
@@ -25,3 +29,6 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-m 'not integration'"
+markers = ["integration: needs the local Docker stack and network access"]
