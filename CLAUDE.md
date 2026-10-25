@@ -11,6 +11,7 @@ The user doesn't write code in this project ("vibe coding"): Claude implements e
 - A phase is done only when its "done" criteria are met and verified by running the commands, not by assumption.
 - Record hard-to-reverse decisions as ADRs in `docs/adr/` (see the `lakehouse-architecture` skill).
 - The user communicates in Turkish; code, comments, commit messages and docs are in English.
+- Docstrings: Google style (`Args:` / `Returns:` / `Raises:`), enforced by ruff's `D` rules (tests exempt). Explain *why* and contracts (idempotency, what is retried, what raises), not what the next line does.
 
 ## Commands
 

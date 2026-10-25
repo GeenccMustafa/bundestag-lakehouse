@@ -24,10 +24,16 @@ target-version = "py312"
 extend-exclude = [".claude"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "D"]
+# D107: the class docstring documents __init__ arguments (Google style).
+# D105: magic methods like __enter__ need no docstring.
+ignore = ["D105", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "D"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
