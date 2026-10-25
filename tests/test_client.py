@@ -127,3 +127,21 @@ def test_waits_between_pages(make_client) -> None:
     list(client.iter_pages("vorgang"))
 
     assert sleeps == [0.5, 0.5]
+
+
+def test_bot_challenge_redirect_stops_without_retry(make_client) -> None:
+    challenge = httpx.Response(303, headers={"Location": "/.enodia/challenge?redirect=%2Fapi"})
+    fake = FakeDip([challenge])
+    client, sleeps = make_client(fake)
+
+    with pytest.raises(DipApiError, match="bot challenge"):
+        list(client.iter_pages("vorgang"))
+    assert sleeps == []
+
+
+def test_unexpected_redirect_is_an_error(make_client) -> None:
+    fake = FakeDip([httpx.Response(301, headers={"Location": "/elsewhere"})])
+    client, _ = make_client(fake)
+
+    with pytest.raises(DipApiError, match="301"):
+        list(client.iter_pages("vorgang"))

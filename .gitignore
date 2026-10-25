@@ -16,11 +16,13 @@ __pycache__/
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
+logs/
 
 # Data
 *.duckdb
 *.duckdb.wal
-data/
+data/*
+!data/.gitkeep
 
 # Airflow
 airflow/logs/
@@ -30,3 +32,4 @@ airflow/config/airflow.cfg
 .DS_Store
 .idea/
 .vscode/
+dbt/.user.yml

@@ -1,0 +1,228 @@
+# Every staging model carries `aktualisiert_at` (decides the latest version) and the
+# lineage columns `_bronze_dt`, `_bronze_run`, `_bronze_file` pointing at the Bronze page.
+x-aktualisiert: &aktualisiert
+  name: aktualisiert_at
+  description: When DIP last changed the record (`aktualisiert`); decides the latest version.
+  data_tests: [not_null, not_in_future]
+
+# Relationships to entities we only partially hold yet (Bronze has recent changes, not full
+# history) are warnings: they show coverage gaps without failing the build. A full load turns
+# them green.
+x-partial-parent: &partial_parent
+  config:
+    severity: warn
+
+models:
+  # ---------------------------------------------------------------- base (bronze schema)
+  - name: base_dip__vorgang
+    description: Every version of every Vorgang found in Bronze, typed. Not deduplicated.
+  - name: base_dip__vorgangsposition
+    description: Every version of every Vorgangsposition found in Bronze, typed.
+  - name: base_dip__drucksache
+    description: Every version of every Drucksache found in Bronze, typed; keeps `doc` for flattening.
+  - name: base_dip__plenarprotokoll
+    description: Every version of every Plenarprotokoll found in Bronze, typed.
+  - name: base_dip__aktivitaet
+    description: Every version of every Aktivität found in Bronze, typed; keeps `doc` for flattening.
+  - name: base_dip__person
+    description: Every version of every person found in Bronze, typed; keeps `doc` for flattening.
+
+  # ---------------------------------------------------------------- staging (silver schema)
+  - name: stg_dip__vorgang
+    description: One row per Vorgang (legislative/parliamentary procedure), latest version.
+    columns:
+      - name: vorgang_id
+        data_tests: [unique, not_null]
+      - name: wahlperiode
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, max_value: "{{ var('max_wahlperiode') }}"}
+      - name: vorgangstyp
+        description: e.g. Gesetzgebung, Kleine Anfrage, Antrag.
+        data_tests: [not_null]
+      - name: titel
+        data_tests: [not_null]
+      - name: datum
+        description: Date of the most recent document in the procedure.
+      - name: initiative
+        description: Initiators (Fraktionen, Bundesregierung, Länder) as a list.
+      - name: sachgebiet
+        description: Subject areas as a list.
+      - *aktualisiert
+
+  - name: stg_dip__vorgangsposition
+    description: One row per step (Vorgangsposition) within a Vorgang, latest version.
+    columns:
+      - name: vorgangsposition_id
+        data_tests: [unique, not_null]
+      - name: vorgang_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__vorgang'), field: vorgang_id}
+              <<: *partial_parent
+      - name: zuordnung
+        description: Chamber the step belongs to (BT Bundestag, BR Bundesrat, BV Bundesversammlung, EK Europakammer).
+        data_tests:
+          - accepted_values:
+              arguments: {values: [BT, BR, BV, EK]}
+      - name: datum
+        data_tests: [not_null]
+      - *aktualisiert
+
+  - name: stg_dip__drucksache
+    description: One row per Drucksache (printed paper), latest version.
+    columns:
+      - name: drucksache_id
+        data_tests: [unique, not_null]
+      - name: dokumentnummer
+        description: Official number, e.g. 21/8696 (Wahlperiode/number).
+        data_tests: [not_null]
+      - name: herausgeber
+        description: Publishing chamber.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [BT, BR]}
+      - name: wahlperiode
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, max_value: "{{ var('max_wahlperiode') }}"}
+      - name: datum
+        data_tests: [not_null, not_in_future]
+      - *aktualisiert
+
+  - name: stg_dip__drucksache__urheber
+    description: Originators of a Drucksache, one row per originator.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [drucksache_id, urheber]}
+    columns:
+      - name: drucksache_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__drucksache'), field: drucksache_id}
+
+  - name: stg_dip__drucksache__ressort
+    description: Ministries responsible for a Drucksache; `is_federfuehrend` marks the lead.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [drucksache_id, ressort]}
+    columns:
+      - name: drucksache_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__drucksache'), field: drucksache_id}
+      - name: ressort
+        data_tests: [not_null]
+
+  - name: stg_dip__drucksache__vorgang
+    description: Bridge between Drucksachen and the Vorgänge they belong to.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [drucksache_id, vorgang_id]}
+    columns:
+      - name: drucksache_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('stg_dip__drucksache'), field: drucksache_id}
+      - name: vorgang_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__vorgang'), field: vorgang_id}
+              <<: *partial_parent
+
+  - name: stg_dip__plenarprotokoll
+    description: One row per plenary session protocol, latest version.
+    columns:
+      - name: plenarprotokoll_id
+        data_tests: [unique, not_null]
+      - name: herausgeber
+        data_tests:
+          - accepted_values:
+              arguments: {values: [BT, BR]}
+      - *aktualisiert
+
+  - name: stg_dip__aktivitaet
+    description: One row per Aktivität of a person (speech, question, signature...), latest version.
+    columns:
+      - name: aktivitaet_id
+        data_tests: [unique, not_null]
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__person'), field: person_id}
+              <<: *partial_parent
+      - name: aktivitaetsart
+        data_tests: [not_null]
+      - name: wahlperiode
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, max_value: "{{ var('max_wahlperiode') }}"}
+      - *aktualisiert
+
+  - name: stg_dip__aktivitaet__vorgang
+    description: Bridge between Aktivitäten and the Vorgänge they belong to.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [aktivitaet_id, vorgang_id, vorgangsposition]}
+    columns:
+      - name: aktivitaet_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('stg_dip__aktivitaet'), field: aktivitaet_id}
+      - name: vorgang_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_dip__vorgang'), field: vorgang_id}
+              <<: *partial_parent
+
+  - name: stg_dip__person
+    description: One row per person, latest version.
+    columns:
+      - name: person_id
+        data_tests: [unique, not_null]
+      - name: nachname
+        data_tests: [not_null]
+      - *aktualisiert
+
+  - name: stg_dip__person__rolle
+    description: >
+      One row per person role and Wahlperiode. A role is either a Fraktion membership or a
+      government office (`ressort`). Input for the SCD2 person dimension in Phase 3.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [person_id, rolle_nr, wahlperiode]}
+    columns:
+      - name: person_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('stg_dip__person'), field: person_id}
+      - name: wahlperiode
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, max_value: "{{ var('max_wahlperiode') }}"}
+
+unit_tests:
+  - name: stg_dip__vorgang_keeps_latest_version
+    description: >
+      Deduplication: per id keep the newest `aktualisiert`; for equal timestamps (the
+      ingestion overlap fetches some records twice) prefer the newest Bronze file.
+    model: stg_dip__vorgang
+    given:
+      - input: ref('base_dip__vorgang')
+        rows:
+          - {vorgang_id: "1", titel: old, aktualisiert_at: "2026-10-20 10:00:00+00", _bronze_dt: "2026-10-20", _bronze_file: a}
+          - {vorgang_id: "1", titel: new, aktualisiert_at: "2026-10-22 10:00:00+00", _bronze_dt: "2026-10-22", _bronze_file: b}
+          - {vorgang_id: "2", titel: first fetch, aktualisiert_at: "2026-10-21 10:00:00+00", _bronze_dt: "2026-10-21", _bronze_file: c}
+          - {vorgang_id: "2", titel: overlap refetch, aktualisiert_at: "2026-10-21 10:00:00+00", _bronze_dt: "2026-10-22", _bronze_file: d}
+    expect:
+      rows:
+        - {vorgang_id: "1", titel: new}
+        - {vorgang_id: "2", titel: overlap refetch}

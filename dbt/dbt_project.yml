@@ -1,0 +1,30 @@
+name: bundestag
+version: "0.1.0"
+config-version: 2
+profile: bundestag
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+snapshot-paths: ["snapshots"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  # Highest Wahlperiode we expect to see; bump when a new Bundestag is elected.
+  max_wahlperiode: 21
+
+models:
+  bundestag:
+    staging:
+      +schema: silver
+      +materialized: table
+      dip:
+        base:
+          # All versions of every record, read straight from Bronze on S3.
+          +schema: bronze
+          +materialized: view
+
+data_tests:
+  bundestag:
+    +store_failures: false
