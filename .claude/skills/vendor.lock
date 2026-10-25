@@ -1,0 +1,14 @@
+# Vendored (third-party) skills. One per line:
+#   <skill-name>  <github-owner/repo>  <path-in-repo>  <commit-sha>
+# Add or remove a line, then run: scripts/sync-skills.sh
+# Use "HEAD" as the sha to pull the latest; the script rewrites it to the resolved commit.
+
+modern-python                       trailofbits/skills          plugins/modern-python/skills/modern-python                    196a907
+differential-review                 trailofbits/skills          plugins/differential-review/skills/differential-review        196a907
+test-driven-development             obra/superpowers            skills/test-driven-development                                2ce8aa1
+systematic-debugging                obra/superpowers            skills/systematic-debugging                                   2ce8aa1
+verification-before-completion      obra/superpowers            skills/verification-before-completion                         2ce8aa1
+using-dbt-for-analytics-engineering dbt-labs/dbt-agent-skills   skills/dbt/skills/using-dbt-for-analytics-engineering         b8facde
+adding-dbt-unit-test                dbt-labs/dbt-agent-skills   skills/dbt/skills/adding-dbt-unit-test                        b8facde
+running-dbt-commands                dbt-labs/dbt-agent-skills   skills/dbt/skills/running-dbt-commands                        b8facde
+cosmos-dbt-core                     astronomer/agents           skills/cosmos-dbt-core                                        486ee63
