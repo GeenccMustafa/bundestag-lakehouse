@@ -1,0 +1,3 @@
+repo: dbt-labs/dbt-agent-skills
+path: skills/dbt/skills/using-dbt-for-analytics-engineering
+commit: b8facde20b7a92c40ce3e6b86b71c4b92aa44040
