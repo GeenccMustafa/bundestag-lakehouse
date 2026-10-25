@@ -16,6 +16,7 @@ import duckdb
 
 
 def _env(*names: str, default: str | None = None) -> str:
+    """Return the first non-blank variable among `names`, else `default`, else exit."""
     for name in names:
         if value := os.environ.get(name, "").strip():
             return value
@@ -25,6 +26,7 @@ def _env(*names: str, default: str | None = None) -> str:
 
 
 def main() -> None:
+    """Attach the lakehouse read-only and serve the DuckDB UI until interrupted."""
     # In-memory main connection: the UI keeps its notebooks there.
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs; INSTALL ducklake; INSTALL postgres;")

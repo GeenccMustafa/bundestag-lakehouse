@@ -1,9 +1,16 @@
-"""Command line entry point.
+"""Command line interface: ``python -m ingestion <command>``.
 
-uv run python -m ingestion backfill --days 30          # daily windows, idempotent
-uv run python -m ingestion extract --entity vorgang    # incremental from the watermark
-uv run python -m ingestion extract --mode full --entity person
-uv run python -m ingestion status
+Commands:
+    backfill: One run per entity per UTC day; idempotent, so safe to repeat.
+    extract: One run per entity, incremental from the watermark (or ``--mode full``).
+    status: Watermarks and Bronze object counts per entity.
+
+Examples (from the repo root, with the stack running)::
+
+    uv run --env-file .env python -m ingestion backfill --days 30
+    uv run --env-file .env python -m ingestion extract --entity vorgang
+    uv run --env-file .env python -m ingestion extract --mode full --entity person
+    uv run --env-file .env python -m ingestion status
 """
 
 import argparse
@@ -20,6 +27,7 @@ from ingestion.watermark import load_watermark
 
 
 def _entities(value: str) -> list[str]:
+    """Parse ``--entity``: ``all``, one name, or a comma-separated list of names."""
     if value == "all":
         return list(ENTITIES)
     names = value.split(",")
@@ -30,10 +38,19 @@ def _entities(value: str) -> list[str]:
 
 
 def _utc_day(d: date) -> datetime:
+    """Return midnight UTC at the start of day `d`."""
     return datetime.combine(d, time.min, tzinfo=UTC)
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the CLI.
+
+    Args:
+        argv: Arguments without the program name; defaults to ``sys.argv[1:]``.
+
+    Returns:
+        Process exit code (0 on success).
+    """
     parser = argparse.ArgumentParser(prog="python -m ingestion")
     sub = parser.add_subparsers(dest="command", required=True)
 
