@@ -92,10 +92,20 @@ uv run --env-file .env dbt build               # models + data tests + unit test
 uv run --env-file .env dbt source freshness    # is Bronze up to date?
 ```
 
+Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
+
+```bash
+uv run --env-file .env python scripts/duckdb_ui.py   # Ctrl+C to stop
+```
+
+DuckDB is embedded: there is no database server, just the file `data/lakehouse.duckdb`. Only
+one process can hold it at a time, so stop the UI before running `dbt build`.
+
 ## Project layout
 
 ```
 ingestion/          DIP API client, Bronze writer, watermarks, CLI
+scripts/            Dev helpers (skill sync, DuckDB UI)
 airflow/dags/       Airflow DAGs
 dbt/                dbt project: sources, bronze views, silver models, tests
 docs/adr/           Architecture decision records
