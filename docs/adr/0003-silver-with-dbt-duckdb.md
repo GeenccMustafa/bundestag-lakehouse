@@ -1,5 +1,5 @@
 # 0003. Silver layer: dbt + DuckDB reading Bronze directly from S3
-Date: 2026-10-25 · Status: accepted
+Date: 2026-10-25 · Status: accepted; storage part superseded by [0004](0004-ducklake-for-silver-and-gold.md)
 
 ## Context
 Bronze holds raw API pages (`{"numFound", "cursor", "documents": [...]}`) as JSON files in

@@ -20,39 +20,44 @@ flowchart LR
         extract["extract.py<br/>windows + watermarks"]
     end
 
-    subgraph lake["Object storage · RustFS (S3)"]
-        bronze[("Bronze<br/>raw JSON pages<br/>dt= / run= partitions")]
+    subgraph lake["Object storage · RustFS (S3) · bucket lakehouse"]
+        bronze[("bronze/<br/>raw JSON pages")]
+        silver[("silver/<br/>Parquet · DuckLake")]
+        gold[("gold/<br/>Parquet · DuckLake")]
     end
 
-    subgraph transform["Transformation · dbt + DuckDB"]
-        silver[("Silver<br/>typed, flattened,<br/>latest version per id")]
-        gold[("Gold<br/>star schema<br/>facts + dimensions")]
-    end
-
+    dbt["dbt + DuckDB<br/>transform + test"]
+    catalog[("Postgres<br/>DuckLake catalog")]
     dash["Streamlit<br/>dashboard"]
 
     api --> client --> extract --> bronze
-    bronze -- "read_json_objects<br/>over S3" --> silver --> gold --> dash
+    bronze --> dbt
+    dbt --> silver
+    dbt --> gold
+    dbt <-. "table metadata,<br/>snapshots" .-> catalog
+    gold --> dash
 
     airflow{{"Airflow<br/>daily DAG"}}
     airflow -. schedules .-> extract
-    airflow -. "dbt build (Phase 4)" .-> silver
-
-    ci["GitHub Actions<br/>lint · tests · dbt parse"]
+    airflow -. "dbt build (Phase 4)" .-> dbt
 
     classDef done fill:#E1F5EE,stroke:#0F6E56,color:#085041
     classDef next fill:#F1EFE8,stroke:#888780,color:#444441
-    class client,extract,bronze,silver,airflow,ci done
+    class client,extract,bronze,silver,dbt,catalog,airflow done
     class gold,dash next
 ```
-
 <sub>Green: built and running · Grey: upcoming phases</sub>
 
 | Layer | Where | What it holds |
 |-------|-------|---------------|
-| **Bronze** | RustFS bucket `lakehouse`, `bronze/<entity>/dt=…/run=…/page=NNNN.json` | API responses byte-for-byte, one file per page, plus a `_SUCCESS.json` manifest per run. Never modified. |
-| **Silver** | DuckDB `data/lakehouse.duckdb`, schema `silver` | One table per entity, typed columns, nested arrays flattened into child tables, only the latest version of each record. |
-| **Gold** | DuckDB, schema `gold` *(Phase 3)* | Kimball star schema: `fct_drucksachen`, `fct_vorgaenge`, `dim_person` (SCD2), `dim_ressort`, `dim_date`, … |
+| **Bronze** | `s3://lakehouse/bronze/<entity>/dt=…/run=…/page=NNNN.json` | API responses byte-for-byte, one file per page, plus a `_SUCCESS.json` manifest per run. Never modified. |
+| **Silver** | `s3://lakehouse/silver/<table>/*.parquet` (DuckLake schema `lake.silver`) | One table per entity, typed columns, nested arrays flattened into child tables, only the latest version of each record. |
+| **Gold** | `s3://lakehouse/gold/<table>/*.parquet` *(Phase 3)* | Kimball star schema: `fct_drucksachen`, `fct_vorgaenge`, `dim_person` (SCD2), `dim_ressort`, `dim_date`, … |
+
+Silver and Gold are [DuckLake](https://ducklake.select) tables: the data is Parquet in RustFS, the
+catalog (which files make up which table, every snapshot) lives in Postgres. That gives ACID
+writes, time travel and many concurrent readers — no database file to lock
+([ADR 0004](docs/adr/0004-ducklake-for-silver-and-gold.md)).
 
 ## Stack
 
@@ -62,7 +67,8 @@ flowchart LR
 | [RustFS](https://github.com/rustfs/rustfs) | Local S3-compatible object store ([why not MinIO](docs/adr/0001-rustfs-as-object-store.md)) |
 | Apache Airflow 3 | Daily orchestration, retries, backfills |
 | dbt-core + dbt-duckdb · DuckDB | SQL transformations, tests, docs; DuckDB reads Bronze straight from S3 |
-| Docker Compose | Runs RustFS, Airflow and Postgres locally |
+| DuckLake (catalog in Postgres) | Table format for Silver/Gold: Parquet in S3 + snapshots, time travel |
+| Docker Compose | Runs RustFS, Airflow and Postgres (Airflow metadata + DuckLake catalog) locally |
 | uv · ruff · pre-commit · GitHub Actions | Dependencies, linting, secret scanning, CI |
 
 ## Getting started
@@ -90,6 +96,7 @@ Build and test Silver:
 uv run --env-file .env dbt deps                # once: install dbt packages
 uv run --env-file .env dbt build               # models + data tests + unit tests
 uv run --env-file .env dbt source freshness    # is Bronze up to date?
+uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'  # drop old snapshots
 ```
 
 Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
@@ -98,8 +105,9 @@ Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
 uv run --env-file .env python scripts/duckdb_ui.py   # Ctrl+C to stop
 ```
 
-DuckDB is embedded: there is no database server, just the file `data/lakehouse.duckdb`. Only
-one process can hold it at a time, so stop the UI before running `dbt build`.
+DuckDB is embedded: there is no database server. Every process (dbt, the UI, later the
+dashboard) runs its own in-memory DuckDB and attaches the shared DuckLake catalog, so they can
+all work at the same time.
 
 ## Project layout
 
@@ -110,6 +118,7 @@ airflow/dags/       Airflow DAGs
 dbt/                dbt project: sources, bronze views, silver models, tests
 docs/adr/           Architecture decision records
 tests/              Python unit tests
+docker/              Container init scripts (DuckLake catalog)
 docker-compose.yml  Local stack
 ```
 

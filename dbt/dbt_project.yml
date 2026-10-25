@@ -18,7 +18,7 @@ models:
   bundestag:
     staging:
       +schema: silver
-      +materialized: table
+      +materialized: ducklake_table
       dip:
         base:
           # All versions of every record, read straight from Bronze on S3.

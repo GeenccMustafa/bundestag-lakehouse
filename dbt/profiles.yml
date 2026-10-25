@@ -1,13 +1,18 @@
 # Credentials come from the environment only. On the host: `uv run --env-file .env dbt ...`
-# (RUSTFS_* + localhost); inside Compose the S3_* variables and endpoint rustfs:9000 are set.
+# (RUSTFS_* + localhost ports); inside Compose S3_* and the service hostnames are set.
+#
+# All models live in the DuckLake catalog `lake` (see docs/adr/0004): table metadata in
+# Postgres, table data as Parquet in s3://lakehouse/<schema>/<table>/. The DuckDB process
+# itself is in-memory, so nothing is locked on local disk.
 bundestag:
   target: dev
   outputs:
     dev:
       type: duckdb
-      path: "{{ env_var('DUCKDB_PATH', 'data/lakehouse.duckdb') }}"
+      path: ":memory:"
+      database: lake
       threads: 4
-      extensions: [httpfs, json]
+      extensions: [httpfs, json, ducklake, postgres]
       secrets:
         - type: s3
           key_id: "{{ env_var('S3_ACCESS_KEY', env_var('RUSTFS_ACCESS_KEY', '')) }}"
@@ -16,3 +21,22 @@ bundestag:
           url_style: path
           use_ssl: false
           region: us-east-1
+        # Used by the DuckLake attach below, so the password never appears in the ATTACH
+        # statement (which dbt logs). The postgres extension only picks up the *default*
+        # postgres secret on its own, and dbt-duckdb names secrets `_dbt_secret_N`, so the
+        # name is set explicitly to DuckDB's default name.
+        - type: postgres
+          name: __default_postgres
+          host: "{{ env_var('DUCKLAKE_PG_HOST', 'localhost') }}"
+          port: "{{ env_var('DUCKLAKE_PG_PORT', '5433') }}"
+          database: "{{ env_var('DUCKLAKE_PG_DB', 'ducklake') }}"
+          user: "{{ env_var('DUCKLAKE_PG_USER', 'ducklake') }}"
+          password: "{{ env_var('DUCKLAKE_PG_PASSWORD', '') }}"
+      attach:
+        - path: "ducklake:postgres:"
+          alias: lake
+          options:
+            data_path: "s3://lakehouse/"
+            # Always write Parquet, even for tiny tables (DuckLake would otherwise keep
+            # small inserts inside the Postgres catalog).
+            data_inlining_row_limit: 0
