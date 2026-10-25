@@ -21,7 +21,7 @@ This is a public repo. Assume everything committed is read by the world forever.
 - Generate Airflow's `FERNET_KEY` and webserver secret key; never commit them.
 - Bind ports to localhost: `"127.0.0.1:9000:9000"`, not `"9000:9000"` — the latter is reachable from your whole network.
 - Pin image tags to a version (`rustfs/rustfs:1.0.3`, `apache/airflow:3.x.y`), never `latest`.
-- Postgres for Airflow is internal only: no published port unless needed for debugging.
+- Postgres is published on `127.0.0.1:5433` only, because dbt/DuckDB on the host need the DuckLake catalog. Airflow and DuckLake use separate roles and databases; never reuse Airflow's credentials for DuckLake.
 
 ## Dependencies / supply chain
 

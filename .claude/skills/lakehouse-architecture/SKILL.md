@@ -12,8 +12,8 @@ The project's architecture rules. Read this before placing new logic, data or se
 | Layer | Where | Format | Who writes it | Contract |
 |-------|-------|--------|---------------|----------|
 | **Bronze** | RustFS `s3://lakehouse/bronze/<entity>/dt=YYYY-MM-DD/` | Raw JSON (one file per API page, as received) | `ingestion/` (Python) | Append-only and immutable. No parsing, no renaming, no filtering. Every file can be traced back to one API request. |
-| **Silver** | dbt `models/staging/` (+ `intermediate/`) | DuckDB / Parquet | dbt | One model per source entity. Flattened, typed, renamed to snake_case, deduplicated to the **latest version per id** (by `aktualisiert`). No business logic or joins across entities in staging. |
-| **Gold** | dbt `models/marts/` | DuckDB / Parquet | dbt | Kimball star schema (`fct_*`, `dim_*`). Every model has a declared grain. See the `dimensional-modeling` skill. |
+| **Silver** | dbt `models/staging/` (+ `intermediate/`) → `s3://lakehouse/silver/` | DuckLake (Parquet + Postgres catalog) | dbt | One model per source entity. Flattened, typed, renamed to snake_case, deduplicated to the **latest version per id** (by `aktualisiert`). No business logic or joins across entities in staging. |
+| **Gold** | dbt `models/marts/` → `s3://lakehouse/gold/` | DuckLake (Parquet + Postgres catalog) | dbt | Kimball star schema (`fct_*`, `dim_*`). Every model has a declared grain. See the `dimensional-modeling` skill. |
 | **Serving** | `dashboard/` | — | Streamlit | Reads **Gold only**. Never queries Bronze or Silver. |
 
 Rules that follow from this:
@@ -21,6 +21,7 @@ Rules that follow from this:
 - **Data flows one way**: Bronze → Silver → Gold → Serving. Nothing reads from a layer to its right.
 - **Bronze is the replay log.** Any Silver/Gold table must be rebuildable from Bronze alone (`dbt build --full-refresh`). Never fix data by editing Bronze files; fix the transformation.
 - **Ingestion does not transform.** If you're tempted to clean data in Python, put it in a staging model instead (ELT, not ETL).
+- **Tables via `ducklake_table`**: Silver/Gold use the project's `ducklake_table` materialization (atomic `CREATE OR REPLACE`), not dbt's `table`, so Parquet folders carry the real table name (ADR 0004).
 - **Idempotency everywhere**: re-running any task for the same logical date must produce the same result (overwrite the partition, `merge`/`delete+insert` incremental strategies, deterministic file names).
 
 ## Naming
