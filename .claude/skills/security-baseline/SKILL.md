@@ -1,6 +1,6 @@
 ---
 name: security-baseline
-description: Security rules for this repo — secrets handling, Docker Compose service hardening, dependency and supply-chain hygiene, and GitHub Actions safety. Use when touching .env files, credentials, docker-compose.yml, Airflow/MinIO/Postgres config, GitHub Actions workflows, or when adding a dependency; and before any commit that might contain a secret.
+description: Security rules for this repo — secrets handling, Docker Compose service hardening, dependency and supply-chain hygiene, and GitHub Actions safety. Use when touching .env files, credentials, docker-compose.yml, Airflow/RustFS/Postgres config, GitHub Actions workflows, or when adding a dependency; and before any commit that might contain a secret.
 ---
 
 # Security Baseline
@@ -17,10 +17,10 @@ This is a public repo. Assume everything committed is read by the world forever.
 
 ## Docker Compose services
 
-- No default credentials (`minioadmin`, `airflow/airflow`, `postgres/postgres`) — read them from `.env`.
+- No default credentials (`rustfsadmin`, `airflow/airflow`, `postgres/postgres`) — read them from `.env`.
 - Generate Airflow's `FERNET_KEY` and webserver secret key; never commit them.
 - Bind ports to localhost: `"127.0.0.1:9000:9000"`, not `"9000:9000"` — the latter is reachable from your whole network.
-- Pin image tags to a version (`minio/minio:RELEASE.2025-…`, `apache/airflow:3.x.y`), never `latest`.
+- Pin image tags to a version (`rustfs/rustfs:1.0.3`, `apache/airflow:3.x.y`), never `latest`.
 - Postgres for Airflow is internal only: no published port unless needed for debugging.
 
 ## Dependencies / supply chain

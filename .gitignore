@@ -24,6 +24,7 @@ data/
 
 # Airflow
 airflow/logs/
+airflow/config/airflow.cfg
 
 # OS / IDE
 .DS_Store

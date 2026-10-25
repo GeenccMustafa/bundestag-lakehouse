@@ -5,7 +5,7 @@ raw data lands in a **Bronze** layer, is cleaned in **Silver** and modeled into 
 kept up to date by an orchestrated pipeline.
 
 ```
-DIP API ──► [Ingestion: Python] ──► BRONZE (MinIO/S3, raw JSON, date-partitioned)
+DIP API ──► [Ingestion: Python] ──► BRONZE (RustFS/S3, raw JSON, date-partitioned)
                                         │
                               [dbt + DuckDB]
                                         ▼
@@ -18,4 +18,15 @@ DIP API ──► [Ingestion: Python] ──► BRONZE (MinIO/S3, raw JSON, date
 Orchestration: Airflow (+ Cosmos)   ·   CI/CD: GitHub Actions
 ```
 
-**Stack:** Python 3.12, uv, Docker Compose, MinIO, Airflow, dbt-core, dbt-duckdb, DuckDB, Parquet — later Databricks Free Edition & Delta Lake.
+**Stack:** Python 3.12, uv, Docker Compose, RustFS (S3), Airflow, dbt-core, dbt-duckdb, DuckDB, Parquet — later Databricks Free Edition & Delta Lake.
+
+## Getting started
+
+```bash
+uv sync                          # Python env + dev tools
+uv run pre-commit install        # run hooks on every commit
+cp .env.example .env             # then replace every change-me value
+docker compose up -d             # RustFS :9001, Airflow :8080 (localhost only)
+```
+
+Design decisions are recorded in [`docs/adr/`](docs/adr/).

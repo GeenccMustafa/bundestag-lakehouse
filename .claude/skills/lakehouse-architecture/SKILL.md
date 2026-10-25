@@ -11,7 +11,7 @@ The project's architecture rules. Read this before placing new logic, data or se
 
 | Layer | Where | Format | Who writes it | Contract |
 |-------|-------|--------|---------------|----------|
-| **Bronze** | MinIO `s3://lakehouse/bronze/<entity>/dt=YYYY-MM-DD/` | Raw JSON (one file per API page, as received) | `ingestion/` (Python) | Append-only and immutable. No parsing, no renaming, no filtering. Every file can be traced back to one API request. |
+| **Bronze** | RustFS `s3://lakehouse/bronze/<entity>/dt=YYYY-MM-DD/` | Raw JSON (one file per API page, as received) | `ingestion/` (Python) | Append-only and immutable. No parsing, no renaming, no filtering. Every file can be traced back to one API request. |
 | **Silver** | dbt `models/staging/` (+ `intermediate/`) | DuckDB / Parquet | dbt | One model per source entity. Flattened, typed, renamed to snake_case, deduplicated to the **latest version per id** (by `aktualisiert`). No business logic or joins across entities in staging. |
 | **Gold** | dbt `models/marts/` | DuckDB / Parquet | dbt | Kimball star schema (`fct_*`, `dim_*`). Every model has a declared grain. See the `dimensional-modeling` skill. |
 | **Serving** | `dashboard/` | — | Streamlit | Reads **Gold only**. Never queries Bronze or Silver. |
