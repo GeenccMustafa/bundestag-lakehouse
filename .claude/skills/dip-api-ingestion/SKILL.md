@@ -32,8 +32,14 @@ description: Facts about the Bundestag DIP API (endpoints, auth, cursor paging, 
 - A failed run never moves the watermark, so re-running picks up from the same place.
 - Full load and backfill use the same code path with different filter params (`f.datum.*` ranges, or no `aktualisiert` filter).
 
-**Bronze writes**
-- Store the response body exactly as received, plus request metadata (url without key, params, fetched_at, http status) — either as a sidecar or a wrapper object; pick one and record it in an ADR.
+**Bronze writes** (ADR 0002)
+- Each response body is stored byte-exact as `page=NNNN.json`; request params, status and counts go into the run's `_SUCCESS.json` manifest, written last.
+- Airflow runs use their data interval (+1h overlap) as the window; the DAG must use `CronDataIntervalTimetable`, because Airflow 3's default cron timetable gives zero-length intervals.
+
+**Observed API behaviour** (2026-10)
+- Results come sorted by `aktualisiert` descending; ids are strings.
+- `numFound` is informational only; the terminal request returns an empty page with the same cursor.
+- No rate-limit headers are returned.
 
 ## Testing
 

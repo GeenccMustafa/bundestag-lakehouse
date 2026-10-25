@@ -27,7 +27,7 @@ Rules that follow from this:
 
 - dbt: `stg_dip__<entity>` (staging), `int_<entity>__<verb>` (intermediate), `fct_<event_plural>`, `dim_<noun>` (marts), snapshots `snp_<entity>`.
 - Columns: snake_case; keys `<entity>_id` (natural) and `<entity>_key` (surrogate); timestamps `*_at` (UTC), dates `*_date`; booleans `is_*` / `has_*`.
-- Bronze objects: `bronze/<entity>/dt=<run_date>/<run_id>_page=<nnnn>.json`. Watermarks: `state/watermarks/<entity>.json`.
+- Bronze objects: `bronze/<entity>/dt=<run_date>/run=<run_id>/page=<nnnn>.json` + `_SUCCESS.json` manifest (see ADR 0002). Watermarks: `state/watermarks/<entity>.json`.
 - Python modules: `ingestion/<concern>.py` (e.g. `client.py`, `storage.py`, `watermark.py`).
 
 ## Where does this logic go?
