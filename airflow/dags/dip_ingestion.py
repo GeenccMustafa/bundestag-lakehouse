@@ -17,6 +17,7 @@ from airflow.timetables.interval import CronDataIntervalTimetable
 from ingestion import ENTITIES
 
 OVERLAP = timedelta(hours=1)
+"""Added before each interval's start, like the CLI's incremental overlap."""
 
 
 @dag(
@@ -29,8 +30,18 @@ OVERLAP = timedelta(hours=1)
     doc_md=__doc__,
 )
 def dip_ingestion() -> None:
+    """Define one `extract_<entity>` task per DIP entity; the tasks are independent."""
+
     @task
     def extract(entity: str) -> dict[str, object]:
+        """Extract one DIP entity for this run's data interval into Bronze.
+
+        The window is the data interval widened by `OVERLAP` at the start. Manual runs
+        without a logical date fall back to the last complete UTC day.
+
+        Returns:
+            Bronze prefix, page count and document count; pushed to XCom.
+        """
         from ingestion.client import DipClient
         from ingestion.config import Settings
         from ingestion.extract import Window, run_extract, window_run_id
