@@ -22,6 +22,7 @@ The user doesn't write code in this project ("vibe coding"): Claude implements e
 - Ingestion: `uv run --env-file .env python -m ingestion {backfill --days N|extract|status}`
 - dbt: `uv run --env-file .env dbt {deps|build|source freshness}` (from repo root; `.env` sets the project/profiles dir)
 - Browse data: `uv run --env-file .env python scripts/duckdb_ui.py` (DuckDB UI on :4213, DuckLake attached read-only)
+- Postgres UI: pgAdmin at http://localhost:5050 (both DBs pre-registered; `docker compose exec postgres psql -U airflow` for a shell)
 - DuckLake housekeeping: `uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'`
 - DIP API: keep request volume low. Bursts get redirected to a bot challenge (HTTP 303); never try to bypass it, back off instead.
 - Skills: `scripts/sync-skills.sh` after editing `.claude/skills/vendor.lock`

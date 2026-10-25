@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Airflow metadata",
+      "Group": "bundestag-lakehouse",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "airflow",
+      "Username": "airflow",
+      "PassFile": "/tmp/pgpass",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "DuckLake catalog",
+      "Group": "bundestag-lakehouse",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "ducklake",
+      "Username": "ducklake",
+      "PassFile": "/tmp/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

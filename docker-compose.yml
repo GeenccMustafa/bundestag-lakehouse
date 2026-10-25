@@ -197,6 +197,42 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Web UI for Postgres at http://localhost:5050 (desktop mode: no pgAdmin login, localhost
+  # only). Both databases are pre-registered (docker/pgadmin/servers.json); their passwords
+  # are written from .env into a pgpass file at start-up, so nothing secret is in the repo.
+  # servers.json assumes the default usernames from .env.example (airflow / ducklake).
+  pgadmin:
+    image: dpage/pgadmin4:9.18
+    environment:
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      DUCKLAKE_PG_DB: ${DUCKLAKE_PG_DB:?set in .env}
+      DUCKLAKE_PG_USER: ${DUCKLAKE_PG_USER:?set in .env}
+      DUCKLAKE_PG_PASSWORD: ${DUCKLAKE_PG_PASSWORD:?set in .env}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        umask 077
+        printf 'postgres:5432:%s:%s:%s\n' "$$POSTGRES_DB" "$$POSTGRES_USER" "$$POSTGRES_PASSWORD" > /tmp/pgpass
+        printf 'postgres:5432:%s:%s:%s\n' "$$DUCKLAKE_PG_DB" "$$DUCKLAKE_PG_USER" "$$DUCKLAKE_PG_PASSWORD" >> /tmp/pgpass
+        exec /entrypoint.sh
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   rustfs-data:
   postgres-data:
+  pgadmin-data:
