@@ -25,7 +25,7 @@ Rules that follow from this:
 
 ## Naming
 
-- dbt: `stg_dip__<entity>` (staging), `int_<entity>__<verb>` (intermediate), `fct_<event_plural>`, `dim_<noun>` (marts), snapshots `snp_<entity>`.
+- dbt: `base_dip__<entity>` (bronze-schema views, all versions), `stg_dip__<entity>` / `stg_dip__<entity>__<child>` (silver), `int_<entity>__<verb>` (intermediate), `fct_<event_plural>`, `dim_<noun>` (marts), snapshots `snp_<entity>`.
 - Columns: snake_case; keys `<entity>_id` (natural) and `<entity>_key` (surrogate); timestamps `*_at` (UTC), dates `*_date`; booleans `is_*` / `has_*`.
 - Bronze objects: `bronze/<entity>/dt=<run_date>/run=<run_id>/page=<nnnn>.json` + `_SUCCESS.json` manifest (see ADR 0002). Watermarks: `state/watermarks/<entity>.json`.
 - Python modules: `ingestion/<concern>.py` (e.g. `client.py`, `storage.py`, `watermark.py`).

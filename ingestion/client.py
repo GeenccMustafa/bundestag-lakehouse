@@ -115,8 +115,14 @@ class DipClient:
                 self._sleep(delay)
                 continue
 
-            if response.status_code < 400:
+            if response.is_success:
                 return response
+            if response.is_redirect and "challenge" in response.headers.get("location", ""):
+                # The DIP front end answers suspected bots with a redirect to a browser
+                # challenge. Retrying quickly makes it worse; stop and let the next run try.
+                raise DipApiError(
+                    f"GET {path} was redirected to a bot challenge; back off and retry later"
+                )
             if response.status_code not in RETRYABLE_STATUS:
                 raise DipApiError(f"GET {path} -> {response.status_code}: {response.text[:300]}")
             if attempt == self._max_retries:

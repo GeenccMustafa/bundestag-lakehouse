@@ -19,4 +19,7 @@ The user doesn't write code in this project ("vibe coding"): Claude implements e
 - Tests: `uv run pytest`
 - All hooks: `uv run pre-commit run --all-files`
 - Stack: `docker compose up -d` (needs `.env`, see `.env.example`)
+- Ingestion: `uv run --env-file .env python -m ingestion {backfill --days N|extract|status}`
+- dbt: `uv run --env-file .env dbt {deps|build|source freshness}` (from repo root; `.env` sets the project/profiles dir)
+- DIP API: keep request volume low. Bursts get redirected to a bot challenge (HTTP 303); never try to bypass it, back off instead.
 - Skills: `scripts/sync-skills.sh` after editing `.claude/skills/vendor.lock`

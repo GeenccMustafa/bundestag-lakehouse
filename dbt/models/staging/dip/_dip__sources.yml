@@ -1,0 +1,32 @@
+sources:
+  - name: dip
+    description: >
+      Raw DIP API responses in the Bronze layer (RustFS / S3), written by `ingestion/`.
+      One file per API page; see docs/adr/0002 for the layout. Each table has the columns
+      `json` (one API page), `dt` (run partition date), `run` (run id = extracted
+      aktualisiert window) and `filename` (S3 path).
+    config:
+      meta:
+        # dbt-duckdb reads these files directly; {name} is the table name below.
+        external_location: >-
+          read_json_objects('s3://lakehouse/bronze/{name}/*/*/page=*.json',
+          format='unstructured', hive_partitioning=true, filename=true)
+      # `dt` is the day an ingestion run covered. Runs happen daily (also on weekends),
+      # so a stale `dt` means ingestion stopped, not that the Bundestag was quiet.
+      loaded_at_field: "cast(dt as timestamp)"
+      freshness:
+        warn_after: {count: 2, period: day}
+        error_after: {count: 4, period: day}
+    tables:
+      - name: vorgang
+        description: Legislative and parliamentary procedures (Vorgänge).
+      - name: vorgangsposition
+        description: Steps within a procedure (e.g. first reading, committee report).
+      - name: drucksache
+        description: Printed papers (bills, motions, questions, answers, reports).
+      - name: plenarprotokoll
+        description: Plenary session minutes.
+      - name: aktivitaet
+        description: Activities of individual persons (speeches, questions, signatures).
+      - name: person
+        description: Members of parliament and other persons, with their roles.
