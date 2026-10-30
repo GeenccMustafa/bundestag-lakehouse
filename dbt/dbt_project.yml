@@ -3,10 +3,16 @@ version: "0.1.0"
 config-version: 2
 profile: bundestag
 
+flags:
+  # No anonymous usage events to dbt Labs.
+  send_anonymous_usage_stats: false
+
 model-paths: ["models"]
 macro-paths: ["macros"]
 test-paths: ["tests"]
 snapshot-paths: ["snapshots"]
+seed-paths: ["seeds"]
+analysis-paths: ["analyses"]
 target-path: target
 clean-targets: [target, dbt_packages]
 
@@ -24,6 +30,22 @@ models:
           # All versions of every record, read straight from Bronze on S3.
           +schema: bronze
           +materialized: view
+
+    intermediate:
+      # Business logic that several Gold models share (parsing, per-entity rollups).
+      +schema: silver
+      +materialized: ducklake_table
+    marts:
+      +schema: gold
+      +materialized: ducklake_table
+
+seeds:
+  bundestag:
+    +schema: seeds
+
+snapshots:
+  bundestag:
+    +schema: snapshots
 
 data_tests:
   bundestag:

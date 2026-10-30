@@ -40,6 +40,7 @@ description: Facts about the Bundestag DIP API (endpoints, auth, cursor paging, 
 - Results come sorted by `aktualisiert` descending; ids are strings.
 - `numFound` is informational only; the terminal request returns an empty page with the same cursor.
 - No rate-limit headers are returned.
+- Since 2026-10-25 every DIP and bundestag.de URL (API, openapi.yaml, website) answers this machine's non-browser requests with `303 -> /.enodia/challenge`. Do not work around it (no browser automation, no other IPs); pause the ingestion DAG and ask the user (own API key / contact parlamentsdokumentation@bundestag.de).
 
 ## Testing
 
