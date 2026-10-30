@@ -54,7 +54,7 @@ x-airflow-common: &airflow-common
 services:
   # Object store for the Bronze layer (see docs/adr/0001).
   rustfs:
-    image: rustfs/rustfs:1.0.3
+    image: rustfs/rustfs:1.0.4
     security_opt:
       - no-new-privileges:true
     environment:
