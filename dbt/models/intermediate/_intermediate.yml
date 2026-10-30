@@ -1,0 +1,59 @@
+models:
+  - name: int_aktivitaet__akteur
+    description: >
+      Actor of each Aktivität parsed from its title ("Name, Rolle, Fraktion"). For MdB the
+      Fraktion is the one on the activity date.
+    columns:
+      - name: aktivitaet_id
+        data_tests: [unique, not_null]
+      - name: akteur_rolle
+        description: MdB, Bundesrat, Bundesmin., Parl. Staatssekr., ... (second title part, grouped).
+        data_tests: [not_null]
+      - name: fraktion
+        description: Only set for MdB.
+
+  - name: int_person
+    description: One row per person with current attributes; input of snp_person.
+    columns:
+      - name: person_id
+        data_tests: [unique, not_null]
+      - name: anzeigename
+        data_tests: [not_null]
+      - name: quelle
+        description: Where the name comes from.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [person, aktivitaet]}
+
+  - name: int_vorgang__verlauf
+    description: First/last step date and number of steps per Vorgang (only steps held in Bronze).
+    columns:
+      - name: vorgang_id
+        data_tests: [unique, not_null]
+
+  - name: int_drucksache__urheber
+    description: Drucksache originators with a type and a rank for picking the primary one.
+    columns:
+      - name: urheber_typ
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Bundesregierung, Fraktion, Bundesrat/Land, Ausschuss, EU, Sonstige]
+
+unit_tests:
+  - name: int_aktivitaet__akteur_parses_titles
+    description: Fraktion only for MdB; Bundesrat members grouped even with commas in parentheses.
+    model: int_aktivitaet__akteur
+    given:
+      - input: ref('stg_dip__aktivitaet')
+        rows:
+          - {aktivitaet_id: "1", person_id: "10", titel: "Dr. Götz Frömming, MdB, AfD"}
+          - {aktivitaet_id: "2", person_id: "11", titel: "Karin Prien, Bundesmin., Bundesministerium für Bildung, Familie"}
+          - {aktivitaet_id: "3", person_id: "12", titel: "Timon Gremmels, MdBR (Staatsminister, Minister für Wissenschaft), Hessen"}
+          - {aktivitaet_id: "4", person_id: "13", titel: "Julia Klöckner, Bundestagspräs."}
+    expect:
+      rows:
+        - {aktivitaet_id: "1", akteur_name: "Dr. Götz Frömming", akteur_rolle: MdB, fraktion: AfD}
+        - {aktivitaet_id: "2", akteur_name: "Karin Prien", akteur_rolle: "Bundesmin.", fraktion: null}
+        - {aktivitaet_id: "3", akteur_name: "Timon Gremmels", akteur_rolle: Bundesrat, fraktion: null}
+        - {aktivitaet_id: "4", akteur_name: "Julia Klöckner", akteur_rolle: "Bundestagspräs.", fraktion: null}

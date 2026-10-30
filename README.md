@@ -43,8 +43,8 @@ flowchart LR
 
     classDef done fill:#E1F5EE,stroke:#0F6E56,color:#085041
     classDef next fill:#F1EFE8,stroke:#888780,color:#444441
-    class client,extract,bronze,silver,dbt,catalog,airflow done
-    class gold,dash next
+    class client,extract,bronze,silver,gold,dbt,catalog,airflow done
+    class dash next
 ```
 <sub>Green: built and running · Grey: upcoming phases</sub>
 
@@ -52,12 +52,37 @@ flowchart LR
 |-------|-------|---------------|
 | **Bronze** | `s3://lakehouse/bronze/<entity>/dt=…/run=…/page=NNNN.json` | API responses byte-for-byte, one file per page, plus a `_SUCCESS.json` manifest per run. Never modified. |
 | **Silver** | `s3://lakehouse/silver/<table>/*.parquet` (DuckLake schema `lake.silver`) | One table per entity, typed columns, nested arrays flattened into child tables, only the latest version of each record. |
-| **Gold** | `s3://lakehouse/gold/<table>/*.parquet` *(Phase 3)* | Kimball star schema: `fct_drucksachen`, `fct_vorgaenge`, `dim_person` (SCD2), `dim_ressort`, `dim_date`, … |
+| **Gold** | `s3://lakehouse/gold/<table>/*.parquet` (DuckLake schema `lake.gold`) | Kimball star schema, see below. |
 
 Silver and Gold are [DuckLake](https://ducklake.select) tables: the data is Parquet in RustFS, the
 catalog (which files make up which table, every snapshot) lives in Postgres. That gives ACID
 writes, time travel and many concurrent readers — no database file to lock
 ([ADR 0004](docs/adr/0004-ducklake-for-silver-and-gold.md)).
+
+### Gold star schema
+
+```mermaid
+erDiagram
+    fct_drucksachen }o--|| dim_date : date_key
+    fct_drucksachen }o--|| dim_ressort : "ressort_key (lead ministry)"
+    fct_drucksachen }o--|| dim_fraktion : fraktion_key
+    fct_vorgaenge }o--|| dim_date : "start / verkuendet date"
+    fct_aktivitaeten }o--|| dim_date : date_key
+    fct_aktivitaeten }o--|| dim_person : "person_key (SCD2, as of date)"
+    fct_aktivitaeten }o--|| dim_fraktion : "fraktion_key (as printed that day)"
+```
+
+| Table | Grain | Notes |
+|-------|-------|-------|
+| `fct_drucksachen` | one Drucksache | lead ministry, primary originator type, Fraktion |
+| `fct_vorgaenge` | one Vorgang | steps, promulgation, `dauer_tage` |
+| `fct_aktivitaeten` | one Aktivität | incremental; person version and Fraktion valid on that day |
+| `dim_person` | one person version | SCD Type 2 from the `snp_person` snapshot |
+| `dim_fraktion`, `dim_ressort` | one Fraktion / ministry | |
+| `dim_date` | one day | weekday, month, Wahlperiode |
+
+Every dimension has an *Unbekannt* member, so facts never have NULL keys. Example questions are in
+[`dbt/analyses/`](dbt/analyses/); design notes in [ADR 0005](docs/adr/0005-gold-star-schema.md).
 
 ## Stack
 
@@ -91,13 +116,14 @@ uv run --env-file .env python -m ingestion status
 
 In Airflow, the `dip_ingestion` DAG does the same daily, one task per DIP entity.
 
-Build and test Silver:
+Build and test Silver and Gold:
 
 ```bash
 uv run --env-file .env dbt deps                # once: install dbt packages
-uv run --env-file .env dbt build               # models + data tests + unit tests
+uv run --env-file .env dbt build               # seeds, models, snapshot, data + unit tests
 uv run --env-file .env dbt source freshness    # is Bronze up to date?
 uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'  # drop old snapshots
+uv run --env-file .env dbt compile --select path:analyses  # SQL for the example questions in dbt/target/compiled/
 ```
 
 Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):

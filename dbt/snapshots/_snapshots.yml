@@ -1,0 +1,12 @@
+snapshots:
+  - name: snp_person
+    description: >
+      SCD Type 2 history of person attributes (name, role, current Fraktion). A new version is
+      opened whenever one of the checked columns changes between two `dbt snapshot` runs, so
+      history starts with the first run and grows as changes are observed.
+    relation: ref('int_person')
+    config:
+      unique_key: person_id
+      strategy: check
+      check_cols: [anzeigename, aktuelle_rolle, aktuelle_fraktion]
+      hard_deletes: ignore
