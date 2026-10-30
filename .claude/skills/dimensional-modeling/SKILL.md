@@ -39,13 +39,18 @@ Use for attributes whose history matters — e.g. a person's Fraktion or role ch
 - Filter with `{% if is_incremental() %} where aktualisiert > (select max(aktualisiert) from {{ this }}) {% endif %}` — consider a lookback window for late-arriving updates.
 - Always make sure `--full-refresh` produces the same result as the incremental history. Add a CI check or a periodic job that compares them if drift is suspected.
 
-## Planned models (starting point, revise as the data teaches us)
+## Models in this project (ADR 0005)
 
 | Model | Grain | Notes |
 |-------|-------|-------|
-| `fct_drucksachen` | one row per Drucksache | FKs: date, Ressort (Urheber), Fraktion; measures: count, pages if available |
-| `fct_vorgaenge` | one row per Vorgang | lifecycle dates, `duration_days`, status |
-| `dim_person` | one row per person version (SCD2) | from `snp_person` |
-| `dim_fraktion` | one row per Fraktion | conformed |
-| `dim_ressort` | one row per Ressort / Ministerium | conformed |
-| `dim_date` | one row per calendar day | generated (e.g. `dbt_date` or a spine) |
+| `fct_drucksachen` | one row per Drucksache | lead Ressort, primary originator type (`int_drucksache__urheber`), Fraktion |
+| `fct_vorgaenge` | one row per Vorgang | first known step, Verkündung, `dauer_tage` (lower bound) |
+| `fct_aktivitaeten` | one row per Aktivität | incremental delete+insert; SCD2 person as of date; Fraktion parsed from the activity title |
+| `dim_person` | one row per person version | from snapshot `snp_person`; first version back-dated to 1900-01-01 |
+| `dim_fraktion` | one row per Fraktion | DIP spelling; originators normalised with `fraktion_from_urheber` |
+| `dim_ressort` | one row per ministry | |
+| `dim_date` | one row per day | generated spine + `wahlperioden` seed |
+
+Every dimension has an unknown member (`'-1'` / date_key `-1`); use the `unknown_key()` and
+`date_key()` macros instead of literals. SCD2 integrity is tested with the generic test
+`scd2_valid_ranges`.

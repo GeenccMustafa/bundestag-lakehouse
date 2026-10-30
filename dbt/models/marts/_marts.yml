@@ -1,0 +1,146 @@
+# Gold: Kimball star schema. Every dimension has an "unknown" member (key '-1', date_key -1),
+# so fact foreign keys are never NULL and relationship tests are errors, not warnings.
+models:
+  # ------------------------------------------------------------------ dimensions
+  - name: dim_date
+    description: One row per calendar day 1949-01-01 .. today + 2 years, with the Wahlperiode; plus -1 = unknown.
+    columns:
+      - name: date_key
+        description: YYYYMMDD as integer.
+        data_tests: [unique, not_null]
+      - name: wahlperiode
+        description: Legislative term the day falls into (NULL before the first Bundestag met).
+
+  - name: dim_person
+    description: >
+      SCD Type 2 person dimension (from snp_person). One row per person and version; join
+      facts with `datum >= valid_from and datum < valid_to`. The first version of each person
+      is back-dated to 1900-01-01.
+    data_tests:
+      - scd2_valid_ranges:
+          arguments: {natural_key: person_id}
+    columns:
+      - name: person_key
+        data_tests: [unique, not_null]
+      - name: person_id
+        description: DIP person id (natural key); NULL only for the unknown member.
+      - name: anzeigename
+        data_tests: [not_null]
+
+  - name: dim_fraktion
+    description: One row per Fraktion in DIP's spelling, plus the unknown member.
+    columns:
+      - name: fraktion_key
+        data_tests: [unique, not_null]
+      - name: fraktion_name
+        data_tests: [unique, not_null]
+
+  - name: dim_ressort
+    description: One row per federal ministry, plus the unknown member.
+    columns:
+      - name: ressort_key
+        data_tests: [unique, not_null]
+      - name: ressort_name
+        data_tests: [unique, not_null]
+
+  # ------------------------------------------------------------------ facts
+  - name: fct_drucksachen
+    description: "Grain: one row per Drucksache (printed paper)."
+    columns:
+      - name: drucksache_id
+        description: Grain key (degenerate dimension).
+        data_tests: [unique, not_null]
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: ressort_key
+        description: Lead (federführend) ministry; unknown when none is named.
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_ressort'), field: ressort_key}
+      - name: fraktion_key
+        description: Fraktion among the originators (first alphabetically); unknown otherwise.
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_fraktion'), field: fraktion_key}
+      - name: urheber_typ
+        description: Type of the primary originator.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Bundesregierung, Fraktion, Bundesrat/Land, Ausschuss, EU, Sonstige, Unbekannt]
+
+  - name: fct_vorgaenge
+    description: "Grain: one row per Vorgang (legislative/parliamentary procedure)."
+    columns:
+      - name: vorgang_id
+        data_tests: [unique, not_null]
+      - name: start_date_key
+        description: First step we hold (lower bound of the true start).
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: verkuendet_date_key
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: dauer_tage
+        description: Days from the first known step to promulgation; NULL if not promulgated.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0}
+
+  - name: fct_aktivitaeten
+    description: >
+      Grain: one row per Aktivität of a person. Incremental (delete+insert on aktivitaet_id,
+      3-day lookback on aktualisiert_at).
+    columns:
+      - name: aktivitaet_id
+        data_tests: [unique, not_null]
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: person_key
+        description: dim_person version valid on the activity date.
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_person'), field: person_key}
+      - name: fraktion_key
+        description: Fraktion printed on the activity (point in time); unknown for non-MdB.
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_fraktion'), field: fraktion_key}
+
+unit_tests:
+  - name: fct_aktivitaeten_picks_person_version_valid_on_activity_date
+    description: An activity joins the dim_person version whose [valid_from, valid_to) contains its date.
+    model: fct_aktivitaeten
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_dip__aktivitaet')
+        rows:
+          - {aktivitaet_id: "a1", person_id: "p", datum: "2026-01-10"}
+          - {aktivitaet_id: "a2", person_id: "p", datum: "2026-06-10"}
+          - {aktivitaet_id: "a3", person_id: "unknown-person", datum: "2026-06-10"}
+      - input: ref('int_aktivitaet__akteur')
+        rows:
+          - {aktivitaet_id: "a1", fraktion: SPD}
+          - {aktivitaet_id: "a2", fraktion: CDU/CSU}
+          - {aktivitaet_id: "a3", fraktion: null}
+      - input: ref('dim_person')
+        rows:
+          - {person_key: v1, person_id: "p", valid_from: "1900-01-01", valid_to: "2026-03-01"}
+          - {person_key: v2, person_id: "p", valid_from: "2026-03-01", valid_to: "9999-12-31"}
+      - input: ref('dim_fraktion')
+        rows:
+          - {fraktion_key: f_spd, fraktion_name: SPD}
+          - {fraktion_key: f_cdu, fraktion_name: CDU/CSU}
+    expect:
+      rows:
+        - {aktivitaet_id: a1, person_key: v1, fraktion_key: f_spd, date_key: 20260110}
+        - {aktivitaet_id: a2, person_key: v2, fraktion_key: f_cdu, date_key: 20260610}
+        - {aktivitaet_id: a3, person_key: "-1", fraktion_key: "-1", date_key: 20260610}

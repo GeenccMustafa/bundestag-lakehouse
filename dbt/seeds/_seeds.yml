@@ -1,0 +1,20 @@
+seeds:
+  - name: wahlperioden
+    description: >
+      Legislative terms of the Bundestag: from the constituent sitting to the day before the
+      next one. The current term has no end date.
+    config:
+      column_types: {wahlperiode: integer, beginn: date, ende: date}
+    columns:
+      - name: wahlperiode
+        data_tests: [unique, not_null]
+      - name: beginn
+        data_tests: [unique, not_null]
+
+  - name: bundeslaender
+    description: The 16 German states, as DIP names them when a state is the originator of a Drucksache.
+    columns:
+      - name: bundesland
+        data_tests: [unique, not_null]
+      - name: kuerzel
+        data_tests: [unique, not_null]
