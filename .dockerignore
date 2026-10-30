@@ -1,0 +1,4 @@
+# The image only needs the pinned dbt requirements; keep secrets (.env), data and the
+# local venv out of the build context.
+*
+!dbt/requirements.txt

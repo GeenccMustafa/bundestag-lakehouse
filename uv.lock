@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [[package]]
@@ -125,10 +125,16 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+dbt = [
+    { name = "dbt-core" },
+    { name = "dbt-duckdb" },
+    { name = "duckdb" },
+]
 dev = [
     { name = "boto3-stubs", extra = ["s3"] },
     { name = "dbt-core" },
     { name = "dbt-duckdb" },
+    { name = "duckdb" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
@@ -141,10 +147,16 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+dbt = [
+    { name = "dbt-core", specifier = ">=1.10" },
+    { name = "dbt-duckdb", specifier = ">=1.9" },
+    { name = "duckdb", specifier = ">=2.0" },
+]
 dev = [
     { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.43.118" },
     { name = "dbt-core", specifier = ">=1.10" },
     { name = "dbt-duckdb", specifier = ">=1.9" },
+    { name = "duckdb", specifier = ">=2.0" },
     { name = "pre-commit", specifier = ">=4.7.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.17.2" },

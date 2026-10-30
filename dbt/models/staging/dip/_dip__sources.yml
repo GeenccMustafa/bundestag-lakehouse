@@ -7,9 +7,10 @@ sources:
       aktualisiert window) and `filename` (S3 path).
     config:
       meta:
-        # dbt-duckdb reads these files directly; {name} is the table name below.
+        # dbt-duckdb reads these files directly; {name} is the table name below. BRONZE_ROOT
+        # points CI at the sample pages in dbt/sample_data/bronze instead of RustFS.
         external_location: >-
-          read_json_objects('s3://lakehouse/bronze/{name}/*/*/page=*.json',
+          read_json_objects('{{ env_var("BRONZE_ROOT", "s3://lakehouse/bronze") }}/{name}/*/*/page=*.json',
           format='unstructured', hive_partitioning=true, filename=true)
       # `dt` is the day an ingestion run covered. Runs happen daily (also on weekends),
       # so a stale `dt` means ingestion stopped, not that the Bundestag was quiet.

@@ -22,6 +22,9 @@ The user doesn't write code in this project ("vibe coding"): Claude implements e
 - Stack: `docker compose up -d` (needs `.env`, see `.env.example`)
 - Ingestion: `uv run --env-file .env python -m ingestion {backfill --days N|extract|status}`
 - dbt: `uv run --env-file .env dbt {deps|build|source freshness}` (from repo root; `.env` sets the project/profiles dir)
+- dbt without the stack: `BRONZE_ROOT=$PWD/dbt/sample_data/bronze uv run --env-file .env dbt build --target ci` (mkdir /tmp/bundestag-dbt-ci first)
+- After changing dbt models: `docker compose up -d airflow-init` regenerates the manifest the Cosmos DAG renders from
+- The user's laptop struggles with long runs: prefer cheap checks (DAG import, `--target ci`, CI) and ask before full Airflow runs or anything taking minutes; stop the stack when not needed
 - Browse data: `uv run --env-file .env python scripts/duckdb_ui.py` (DuckDB UI on :4213, DuckLake attached read-only)
 - Postgres UI: pgAdmin at http://localhost:5050 (both DBs pre-registered; `docker compose exec postgres psql -U airflow` for a shell)
 - DuckLake housekeeping: `uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'`
