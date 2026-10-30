@@ -22,3 +22,8 @@ updates:
       # A Postgres major upgrade needs a dump/restore of Airflow's metadata DB; do it by hand.
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker
+    directory: /docker/airflow
+    schedule:
+      interval: weekly

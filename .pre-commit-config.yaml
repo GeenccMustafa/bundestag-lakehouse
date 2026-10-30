@@ -3,7 +3,8 @@
 default_install_hook_types: [pre-commit]
 
 # Vendored skills are copied from upstream as-is; don't let hooks rewrite them.
-exclude: ^\.claude/skills/(?!lakehouse-architecture|dip-api-ingestion|dimensional-modeling|security-baseline)[^/]+/
+# Raw API pages in dbt/sample_data are byte-exact copies of Bronze; never rewrite them either.
+exclude: ^(\.claude/skills/(?!lakehouse-architecture|dip-api-ingestion|dimensional-modeling|security-baseline)[^/]+/|dbt/sample_data/)
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -30,6 +31,9 @@ repos:
     hooks:
       # Fails if pyproject.toml changed but uv.lock wasn't updated.
       - id: uv-lock
+      # Pinned dbt requirements for the Airflow image, kept in sync with uv.lock.
+      - id: uv-export
+        args: [--only-group, dbt, --no-emit-project, --frozen, --output-file, dbt/requirements.txt, --quiet]
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1

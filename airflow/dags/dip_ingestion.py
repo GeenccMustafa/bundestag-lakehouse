@@ -7,12 +7,17 @@ overlap hour. The interval decides the Bronze run id, so retrying or clearing a 
 overwrites its own output — runs are idempotent. History is filled with Airflow backfills:
 
     airflow backfill create --dag-id dip_ingestion --from-date 2026-10-01 --to-date 2026-10-24
+
+When every entity is loaded, `bronze_ready` emits the BRONZE asset event, which starts the
+dbt_lakehouse DAG. A failed extract therefore stops the pipeline before dbt runs on half-loaded
+data.
 """
 
 from datetime import UTC, datetime, timedelta
 
 from airflow.sdk import dag, get_current_context, task
 from airflow.timetables.interval import CronDataIntervalTimetable
+from lakehouse_assets import BRONZE
 
 from ingestion import ENTITIES
 
@@ -75,8 +80,12 @@ def dip_ingestion() -> None:
             )
         return {"prefix": result.prefix, "pages": result.pages, "documents": result.documents}
 
-    for entity in ENTITIES:
-        extract.override(task_id=f"extract_{entity}")(entity)
+    @task(outlets=[BRONZE])
+    def bronze_ready(results: list[dict[str, object]]) -> int:
+        """Emit the BRONZE asset event once all entities succeeded; returns the document count."""
+        return sum(int(r["documents"]) for r in results)
+
+    bronze_ready([extract.override(task_id=f"extract_{entity}")(entity) for entity in ENTITIES])
 
 
 dip_ingestion()

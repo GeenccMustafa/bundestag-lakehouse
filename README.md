@@ -37,9 +37,9 @@ flowchart LR
     dbt <-. "table metadata,<br/>snapshots" .-> catalog
     gold --> dash
 
-    airflow{{"Airflow<br/>daily DAG"}}
+    airflow{{"Airflow<br/>dip_ingestion → dbt_lakehouse"}}
     airflow -. schedules .-> extract
-    airflow -. "dbt build (Phase 4)" .-> dbt
+    airflow -. "Cosmos, on bronze asset" .-> dbt
 
     classDef done fill:#E1F5EE,stroke:#0F6E56,color:#085041
     classDef next fill:#F1EFE8,stroke:#888780,color:#444441
@@ -90,12 +90,33 @@ Every dimension has an *Unbekannt* member, so facts never have NULL keys. Exampl
 |------|----------------------|
 | Python 3.12 · httpx · boto3 | Ingestion: API client, Bronze writer |
 | [RustFS](https://github.com/rustfs/rustfs) | Local S3-compatible object store ([why not MinIO](docs/adr/0001-rustfs-as-object-store.md)) |
-| Apache Airflow 3 | Daily orchestration, retries, backfills |
+| Apache Airflow 3 + Astronomer Cosmos | Daily orchestration, dbt models as tasks, asset-driven DAGs |
 | dbt-core + dbt-duckdb · DuckDB | SQL transformations, tests, docs; DuckDB reads Bronze straight from S3 |
 | DuckLake (catalog in Postgres) | Table format for Silver/Gold: Parquet in S3 + snapshots, time travel |
 | Docker Compose | Runs RustFS, Airflow and Postgres (Airflow metadata + DuckLake catalog) locally |
 | pgAdmin | Web UI for Postgres, both databases pre-registered |
 | uv · ruff · pre-commit · GitHub Actions | Dependencies, linting, secret scanning, CI |
+
+## Orchestration and CI
+
+```mermaid
+flowchart LR
+    ing["dip_ingestion<br/>daily, 1 task per entity"] -- "bronze asset<br/>(all entities OK)" --> dbtdag["dbt_lakehouse<br/>Cosmos: 1 task per model"]
+    dbtdag -- "gold asset" --> next["dashboard (Phase 5)"]
+```
+
+- **`dip_ingestion`** (daily) loads Bronze; only when every entity succeeded does it emit the
+  `bronze` asset.
+- **`dbt_lakehouse`** runs on that asset (or by hand). Cosmos shows every seed, model and the
+  snapshot as a task; a single `dbt build` runs underneath (WATCHER mode), tests each model right
+  after building it and skips everything downstream of a failure.
+- **CI** runs dbt against `dbt/sample_data/bronze` with the `ci` target (local DuckLake, no
+  services): a full build on `main`, and on pull requests a slim build of only what changed
+  (`@state:modified` vs. the base branch).
+- **dbt docs** (models, columns, tests, lineage) are published to GitHub Pages on every change to
+  `dbt/` on `main`: https://geenccmustafa.github.io/bundestag-lakehouse/
+
+Details: [ADR 0006](docs/adr/0006-orchestration-and-ci.md).
 
 ## Getting started
 
@@ -126,6 +147,16 @@ uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'
 uv run --env-file .env dbt compile --select path:analyses  # SQL for the example questions in dbt/target/compiled/
 ```
 
+Without the stack (seconds, sample data only):
+
+```bash
+mkdir -p /tmp/bundestag-dbt-ci
+BRONZE_ROOT=$PWD/dbt/sample_data/bronze uv run --env-file .env dbt build --target ci
+```
+
+After changing the dbt project, regenerate the manifest the Airflow DAG renders from:
+`docker compose up -d airflow-init`.
+
 Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
 
 ```bash
@@ -151,10 +182,10 @@ all work at the same time.
 ingestion/          DIP API client, Bronze writer, watermarks, CLI
 scripts/            Dev helpers (skill sync, DuckDB UI)
 airflow/dags/       Airflow DAGs
-dbt/                dbt project: sources, bronze views, silver models, tests
+dbt/                dbt project (sources, models, snapshot, seeds, tests); sample_data/ for CI
 docs/adr/           Architecture decision records
 tests/              Python unit tests
-docker/             Container config (DuckLake catalog init, pgAdmin servers)
+docker/             Airflow image, DuckLake catalog init, pgAdmin servers
 docker-compose.yml  Local stack
 ```
 

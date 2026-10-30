@@ -1,0 +1,63 @@
+name: dbt docs
+
+# Publishes the dbt documentation (models, columns, tests, lineage graph) to GitHub Pages,
+# built from the sample data so column types are real.
+on:
+  push:
+    branches: [main]
+    paths: ["dbt/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a deployment half-way; let the newest one queue behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Generate dbt docs
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROJECT_DIR: dbt
+      DBT_PROFILES_DIR: dbt
+      BRONZE_ROOT: ${{ github.workspace }}/dbt/sample_data/bronze
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked --only-group dbt
+
+      # Build first so `docs generate` can read real column types from the catalog.
+      - run: mkdir -p /tmp/bundestag-dbt-ci && uv run dbt deps && uv run dbt build --target ci
+
+      # --static: one self-contained HTML file (manifest and catalog inlined).
+      - run: |
+          uv run dbt docs generate --target ci --static
+          mkdir -p site
+          cp dbt/target/static_index.html site/index.html
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the site
+      id-token: write # prove the deployment comes from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

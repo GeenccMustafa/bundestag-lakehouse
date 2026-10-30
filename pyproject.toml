@@ -9,10 +9,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "boto3-stubs[s3]>=1.43.118",
+# Everything dbt needs. Also installed into the Airflow image (in its own venv), pinned
+# through dbt/requirements.txt, which `uv export` generates from uv.lock (pre-commit hook).
+dbt = [
     "dbt-core>=1.10",
     "dbt-duckdb>=1.9",
+    "duckdb>=2.0",
+]
+dev = [
+    {include-group = "dbt"},
+    "boto3-stubs[s3]>=1.43.118",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",

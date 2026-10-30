@@ -50,25 +50,48 @@ jobs:
       - run: uv run pytest
 
   dbt:
-    name: dbt parse
+    # `--target ci`: DuckLake with a local catalog file, Bronze from the sample pages in
+    # dbt/sample_data/bronze. No RustFS, Postgres or credentials needed.
+    name: dbt build (sample data)
     runs-on: ubuntu-latest
     env:
       DBT_PROJECT_DIR: dbt
       DBT_PROFILES_DIR: dbt
+      BRONZE_ROOT: ${{ github.workspace }}/dbt/sample_data/bronze
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0 # slim CI parses the base branch
 
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
 
-      - run: uv sync --locked
+      - run: uv sync --locked --only-group dbt
 
-      # Compiles every model, test and YAML file without touching data (Phase 4 adds a
-      # full `dbt build` on sample data).
-      - run: uv run dbt deps && uv run dbt parse
+      - run: mkdir -p /tmp/bundestag-dbt-ci && uv run dbt deps
+
+      - name: Full build (push to main)
+        if: github.event_name != 'pull_request'
+        run: uv run dbt build --target ci
+
+      # Slim CI: compare against the base branch's manifest and build only what the PR changed
+      # plus everything downstream of it. `@` also selects every parent of those nodes (seeds,
+      # upstream models), which must exist in the empty CI lake; `+state:modified+` would miss
+      # parents of the downstream models, e.g. a seed joined in two levels below a changed source.
+      - name: Slim build (pull request)
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="$RUNNER_TEMP/base"
+          git worktree add "$BASE" "origin/$GITHUB_BASE_REF"
+          uv run dbt deps --project-dir "$BASE/dbt" --profiles-dir dbt
+          uv run dbt parse --project-dir "$BASE/dbt" --profiles-dir dbt --target ci \
+            --target-path base-state
+          echo "Changed vs $GITHUB_BASE_REF:"
+          uv run dbt ls --target ci --select state:modified --state "$BASE/dbt/base-state" \
+            --output name --quiet || true
+          uv run dbt build --target ci --select @state:modified --state "$BASE/dbt/base-state"
 
   compose:
     name: Validate docker-compose.yml
