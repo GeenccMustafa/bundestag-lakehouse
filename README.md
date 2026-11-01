@@ -58,6 +58,40 @@ writes, time travel and many concurrent readers — no database file to lock
 
 ### Gold star schema
 
+Gold follows Kimball's dimensional modeling, which splits tables into two kinds:
+
+| | **Fact** (`fct_`) | **Dimension** (`dim_`) |
+|---|---|---|
+| Holds | **events**: something happened | **context**: who, what, which group, when |
+| Answers | "how many?", "how long?" | "... per Fraktion", "... by month" |
+| Size | many rows, grows with every load | few rows, changes slowly |
+| Example | `fct_aktivitaeten` (one row per activity) | `dim_fraktion` (one row per Fraktion) |
+
+A rule of thumb: in *"MdB X (AfD) **asked** a Kleine Anfrage on 21 October"*, the verb is a
+fact row; *X*, *AfD* and *21 October* are rows in `dim_person`, `dim_fraktion` and `dim_date`.
+A fact row stores only **keys** to its dimensions plus its own measures and attributes, e.g.
+`aktivitaet_id, date_key, person_key, fraktion_key, aktivitaetsart`. The facts sit in the middle
+and the dimensions around them, hence *star* schema. Every question has the same shape: count or
+sum a fact, group by a dimension:
+
+```sql
+select fr.fraktion_name, count(*) as aktivitaeten
+from lake.gold.fct_aktivitaeten as f
+join lake.gold.dim_fraktion as fr using (fraktion_key)
+group by all
+```
+
+Why split them: names are stored once instead of on thousands of rows; the same (*conformed*)
+dimension serves every fact, so "SPD" means the same in every chart; and the question shape stays
+simple. Three rules keep it correct:
+
+- **Grain:** each fact table states what one row is (table below). Mixing grains double-counts.
+- **SCD Type 2:** a person's role or Fraktion can change. `dim_person` keeps one row per
+  *version* with `valid_from` / `valid_to`, and an activity joins the version valid on its date,
+  so a person can appear in several rows.
+- **Unknown member:** every dimension has an *Unbekannt* row (key `-1`), so a fact with missing
+  context (e.g. a minister, who has no Fraktion) still joins instead of disappearing.
+
 ```mermaid
 erDiagram
     fct_drucksachen }o--|| dim_date : date_key
@@ -78,7 +112,7 @@ erDiagram
 | `dim_fraktion`, `dim_ressort` | one Fraktion / ministry | |
 | `dim_date` | one day | weekday, month, Wahlperiode |
 
-Every dimension has an *Unbekannt* member, so facts never have NULL keys. Example questions are in
+Example questions are in
 [`dbt/analyses/`](dbt/analyses/); design notes in [ADR 0005](docs/adr/0005-gold-star-schema.md).
 
 ## Stack
