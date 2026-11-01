@@ -57,3 +57,25 @@ unit_tests:
         - {aktivitaet_id: "2", akteur_name: "Karin Prien", akteur_rolle: "Bundesmin.", fraktion: null}
         - {aktivitaet_id: "3", akteur_name: "Timon Gremmels", akteur_rolle: Bundesrat, fraktion: null}
         - {aktivitaet_id: "4", akteur_name: "Julia Klöckner", akteur_rolle: "Bundestagspräs.", fraktion: null}
+
+  - name: int_person_breaks_ties_deterministically
+    description: >
+      Activities on the same day with the same update time: the highest aktivitaet_id wins,
+      so the snapshot input is stable between runs.
+    model: int_person
+    given:
+      - input: ref('stg_dip__person')
+        rows: []
+      - input: ref('stg_dip__aktivitaet')
+        rows:
+          - {aktivitaet_id: "100", person_id: "7", datum: "2026-09-25", aktualisiert_at: "2026-10-23 14:30:16+02"}
+          - {aktivitaet_id: "101", person_id: "7", datum: "2026-09-25", aktualisiert_at: "2026-10-23 14:30:16+02"}
+          - {aktivitaet_id: "099", person_id: "7", datum: "2026-09-25", aktualisiert_at: "2026-10-23 14:30:16+02"}
+      - input: ref('int_aktivitaet__akteur')
+        rows:
+          - {aktivitaet_id: "100", akteur_name: "Erika Mustermann", akteur_rolle: "Bundesratspräs.", fraktion: null}
+          - {aktivitaet_id: "101", akteur_name: "Erika Mustermann", akteur_rolle: Bundesrat, fraktion: null}
+          - {aktivitaet_id: "099", akteur_name: "Erika Mustermann", akteur_rolle: Bundesrat, fraktion: null}
+    expect:
+      rows:
+        - {person_id: "7", anzeigename: "Erika Mustermann", aktuelle_rolle: Bundesrat, quelle: aktivitaet}
