@@ -28,8 +28,9 @@ Store Silver and Gold as **DuckLake** tables:
 - **Plain Parquet via dbt-duckdb `external` materialization** — open files in S3, but no
   catalog, no transactions (readers can see half-written tables), no snapshots.
 - **Delta Lake / Iceberg locally** — the industry formats, but DuckDB's write support for them is
-  limited and they need more moving parts; Delta Lake comes in Phase 6 on Databricks, and
-  comparing it with DuckLake is part of that phase.
+  limited and they need more moving parts. A Delta Lake / Databricks comparison was planned as
+  a final phase and dropped when the project was closed (v1.0.0); it is listed as future work
+  in the README.
 - **SQLite or a DuckDB file as DuckLake catalog** — no extra service, but weaker multi-client
   behaviour; Postgres is already running.
 
