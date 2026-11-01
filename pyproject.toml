@@ -1,6 +1,6 @@
 [project]
 name = "bundestag-lakehouse"
-version = "0.1.0"
+version = "1.0.0"
 description = "Bronze → Silver → Gold lakehouse on the Bundestag DIP API"
 requires-python = ">=3.12"
 dependencies = [
