@@ -9,6 +9,30 @@ incrementally, idempotently, tested and orchestrated.
 It answers questions like *which ministry produces the most printed papers*, *how long does a
 bill take from first reading to promulgation* or *how active is each member of parliament*.
 
+## Status
+
+**Complete (v1.0.0).** Every layer is built, tested and verified end to end on real data:
+
+| Phase | What | Verified by |
+|-------|------|-------------|
+| 0 | Repo, Docker stack, pre-commit, CI | CI on every PR |
+| 1 | DIP ingestion into Bronze (watermarks, idempotent runs) | unit tests, real API runs |
+| 2 | Silver with dbt on DuckLake | `dbt build`, data + unit tests |
+| 3 | Gold star schema, SCD2 persons | `dbt build`, unit tests |
+| 4 | Airflow + Cosmos, slim CI, dbt docs on Pages | full Airflow run: 64/64 tasks |
+| 5 | Streamlit dashboard | query tests, headless app test in CI |
+
+Data currently ends on 23.10.2026: since 25.10.2026 the DIP API redirects non-browser clients
+to a bot challenge, which this project deliberately does not work around. With a personal API
+key, unpausing the `dip_ingestion` DAG resumes the daily flow; nothing else changes.
+
+Possible future work:
+
+- Compare the Gold layer on Delta Lake / Databricks with DuckLake (log files vs. SQL catalog,
+  time travel, maintenance), porting the DuckDB-specific SQL with `adapter.dispatch`.
+- Time travel in the dashboard: pick a DuckLake snapshot and see the data as of then.
+- A bridge table for person roles per Wahlperiode (see ADR 0005).
+
 ## Architecture
 
 ```mermaid

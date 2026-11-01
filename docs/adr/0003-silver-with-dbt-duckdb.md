@@ -26,8 +26,8 @@ some records, and records are re-delivered whenever they change.
 - **Flattening in Python during ingestion** — would make Bronze no longer raw (ETL instead of
   ELT) and lose replayability.
 - **Writing Silver as Parquet back to S3** (dbt-duckdb `external` materialization) — closer to a
-  "real" lakehouse; deferred until Phase 6 compares against Delta Lake. The DuckDB file is
-  simpler to query from the dashboard for now.
+  "real" lakehouse; deferred at the time. The DuckDB file was simpler to query for now.
+  (Later Silver did move to Parquet in S3, as DuckLake tables: ADR 0004.)
 
 ## Consequences
 - `dbt build --full-refresh` recreates Silver from Bronze at any time.
