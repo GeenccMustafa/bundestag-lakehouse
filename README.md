@@ -67,8 +67,8 @@ Gold follows Kimball's dimensional modeling, which splits tables into two kinds:
 | Size | many rows, grows with every load | few rows, changes slowly |
 | Example | `fct_aktivitaeten` (one row per activity) | `dim_fraktion` (one row per Fraktion) |
 
-A rule of thumb: in *"MdB X (AfD) **asked** a Kleine Anfrage on 21 October"*, the verb is a
-fact row; *X*, *AfD* and *21 October* are rows in `dim_person`, `dim_fraktion` and `dim_date`.
+A rule of thumb: in *"MdB X (SPD) **asked** a Kleine Anfrage on 21 October"*, the verb is a
+fact row; *X*, *SPD* and *21 October* are rows in `dim_person`, `dim_fraktion` and `dim_date`.
 A fact row stores only **keys** to its dimensions plus its own measures and attributes, e.g.
 `aktivitaet_id, date_key, person_key, fraktion_key, aktivitaetsart`. The facts sit in the middle
 and the dimensions around them, hence *star* schema. Every question has the same shape: count or
