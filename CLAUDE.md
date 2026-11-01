@@ -25,6 +25,8 @@ The user doesn't write code in this project ("vibe coding"): Claude implements e
 - dbt without the stack: `BRONZE_ROOT=$PWD/dbt/sample_data/bronze uv run --env-file .env dbt build --target ci` (mkdir /tmp/bundestag-dbt-ci first)
 - After changing dbt models: `docker compose up -d airflow-init` regenerates the manifest the Cosmos DAG renders from
 - The user's laptop struggles with long runs: prefer cheap checks (DAG import, `--target ci`, CI) and ask before full Airflow runs or anything taking minutes; stop the stack when not needed
+- Dashboard: `uv run --env-file .env streamlit run dashboard/app.py` (:8501; needs only `docker compose up -d postgres rustfs`; `LAKE_TARGET=ci` reads the sample lake instead). Streamlit hot-reloads only `app.py`: restart after changing `queries.py`/`lake.py`
+- Dashboard smoke test: `uv run pytest -m lake` (after the `--target ci` dbt build)
 - Browse data: `uv run --env-file .env python scripts/duckdb_ui.py` (DuckDB UI on :4213, DuckLake attached read-only)
 - Postgres UI: pgAdmin at http://localhost:5050 (both DBs pre-registered; `docker compose exec postgres psql -U airflow` for a shell)
 - DuckLake housekeeping: `uv run --env-file .env dbt run-operation ducklake_maintenance --args '{days: 7}'`
