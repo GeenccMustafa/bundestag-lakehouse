@@ -42,11 +42,8 @@ flowchart LR
     airflow -. "Cosmos, on bronze asset" .-> dbt
 
     classDef done fill:#E1F5EE,stroke:#0F6E56,color:#085041
-    classDef next fill:#F1EFE8,stroke:#888780,color:#444441
-    class client,extract,bronze,silver,gold,dbt,catalog,airflow done
-    class dash next
+    class client,extract,bronze,silver,gold,dbt,catalog,airflow,dash done
 ```
-<sub>Green: built and running · Grey: upcoming phases</sub>
 
 | Layer | Where | What it holds |
 |-------|-------|---------------|
@@ -102,7 +99,7 @@ Every dimension has an *Unbekannt* member, so facts never have NULL keys. Exampl
 ```mermaid
 flowchart LR
     ing["dip_ingestion<br/>daily, 1 task per entity"] -- "bronze asset<br/>(all entities OK)" --> dbtdag["dbt_lakehouse<br/>Cosmos: 1 task per model"]
-    dbtdag -- "gold asset" --> next["dashboard (Phase 5)"]
+    dbtdag -- "gold asset" --> next["Streamlit dashboard<br/>reads the latest snapshot"]
 ```
 
 - **`dip_ingestion`** (daily) loads Bronze; only when every entity succeeded does it emit the
@@ -117,6 +114,23 @@ flowchart LR
   `dbt/` on `main`: https://geenccmustafa.github.io/bundestag-lakehouse/
 
 Details: [ADR 0006](docs/adr/0006-orchestration-and-ci.md).
+
+## Dashboard
+
+A Streamlit app on the Gold star schema (`dashboard/`), in German like the data: headline
+numbers, activities per Fraktion (point in time), papers per lead ministry, activity over time
+(by day, week or month depending on the range), papers per weekday, activity kinds and
+procedures per type. Filters: Wahlperiode and date range; every chart has its numbers as a table.
+
+- **Read-only consumer.** It attaches the DuckLake catalog `READ_ONLY` and runs only SELECTs, so
+  it can be open while dbt writes; each query sees the latest committed snapshot. The sidebar
+  shows that snapshot and the newest DIP update in Gold.
+- **Queries are plain SQL** in `dashboard/queries.py` (bound parameters, no Streamlit), tested
+  against a hand-made Gold layer; CI also renders the whole app headless on the sample lake.
+- **Light on the laptop:** it needs only Postgres and RustFS, not Airflow, and caches results for
+  ten minutes.
+
+Details: [ADR 0007](docs/adr/0007-streamlit-dashboard.md).
 
 ## Getting started
 
@@ -157,6 +171,14 @@ BRONZE_ROOT=$PWD/dbt/sample_data/bronze uv run --env-file .env dbt build --targe
 After changing the dbt project, regenerate the manifest the Airflow DAG renders from:
 `docker compose up -d airflow-init`.
 
+Open the dashboard (http://localhost:8501):
+
+```bash
+docker compose up -d postgres rustfs                          # enough for the dashboard
+uv run --env-file .env streamlit run dashboard/app.py
+LAKE_TARGET=ci uv run --env-file .env streamlit run dashboard/app.py   # sample lake, no stack
+```
+
 Explore the data in the browser (DuckDB UI, read-only, http://localhost:4213):
 
 ```bash
@@ -171,8 +193,9 @@ Local web UIs (all bound to localhost):
 | http://localhost:9001 | RustFS console (`RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`) |
 | http://localhost:5050 | pgAdmin: Airflow metadata DB and DuckLake catalog, no login needed |
 | http://localhost:4213 | DuckDB UI, started by `scripts/duckdb_ui.py` |
+| http://localhost:8501 | Streamlit dashboard, started by `streamlit run dashboard/app.py` |
 
-DuckDB is embedded: there is no database server. Every process (dbt, the UI, later the
+DuckDB is embedded: there is no database server. Every process (dbt, the UI, the
 dashboard) runs its own in-memory DuckDB and attaches the shared DuckLake catalog, so they can
 all work at the same time.
 
@@ -180,6 +203,7 @@ all work at the same time.
 
 ```
 ingestion/          DIP API client, Bronze writer, watermarks, CLI
+dashboard/          Streamlit app on Gold (lake connection, SQL, page)
 scripts/            Dev helpers (skill sync, DuckDB UI)
 airflow/dags/       Airflow DAGs
 dbt/                dbt project (sources, models, snapshot, seeds, tests); sample_data/ for CI
