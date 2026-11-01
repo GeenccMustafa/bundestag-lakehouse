@@ -14,8 +14,11 @@ model as its own Airflow task, run dbt in CI, and publish dbt's documentation. C
 ## Decision
 - **Custom Airflow image** (`docker/airflow/Dockerfile`): Cosmos in Airflow's environment
   (pip + Airflow constraints, Airflow's documented method); dbt in its own venv
-  `/opt/airflow/dbt-venv`, installed with `--require-hashes` from `dbt/requirements.txt`, which a
-  pre-commit hook exports from `uv.lock`. Airflow runs exactly the dbt the repo is tested with.
+  `/opt/airflow/dbt-venv`, installed with `--require-hashes` from requirements the image build
+  exports from `uv.lock` (`uv export --frozen`). Airflow runs exactly the dbt the repo is tested
+  with. (First a pre-commit hook kept an exported `dbt/requirements.txt` in the repo; Dependabot
+  updates `uv.lock` without running hooks, so every dependency PR failed lint. Exporting at build
+  time removes the derived file.)
 - **Cosmos `DbtTaskGroup`** in `dbt_lakehouse`, tuned for low load:
   - `LoadMode.DBT_MANIFEST` from `dbt/target-airflow/manifest.json`, produced once by
     `airflow-init` (`dbt deps` + `dbt parse`), so the DAG processor never runs dbt

@@ -1,4 +1,5 @@
-# The image only needs the pinned dbt requirements; keep secrets (.env), data and the
-# local venv out of the build context.
+# The image only needs the lock file (dbt requirements are exported from it); keep secrets
+# (.env), data and the local venv out of the build context.
 *
-!dbt/requirements.txt
+!pyproject.toml
+!uv.lock
