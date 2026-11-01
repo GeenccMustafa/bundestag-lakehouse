@@ -151,6 +151,10 @@ Details: [ADR 0006](docs/adr/0006-orchestration-and-ci.md).
 
 ## Dashboard
 
+![Dashboard: filters, data freshness, headline numbers, activity over time, papers per weekday, activity kinds and procedures per type](docs/img/dashboard.png)
+<sub>Excerpt on the real Gold layer (DIP data up to 23.10.2026); the Fraktion and ministry
+panels are not shown.</sub>
+
 A Streamlit app on the Gold star schema (`dashboard/`), in German like the data: headline
 numbers, activities per Fraktion (point in time), papers per lead ministry, activity over time
 (by day, week or month depending on the range), papers per weekday, activity kinds and
