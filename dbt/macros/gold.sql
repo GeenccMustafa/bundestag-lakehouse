@@ -6,7 +6,7 @@
 {% endmacro %}
 
 
-{#- Fraktion name from a Drucksache originator ("Fraktion der AfD" -> "AfD",
+{#- Fraktion name from a Drucksache originator ("Fraktion der SPD" -> "SPD",
     "Fraktion BÜNDNIS 90/DIE GRÜNEN" -> "BÜNDNIS 90/DIE GRÜNEN"); NULL for non-Fraktionen.
     Gives the same spelling DIP uses in activity titles and person roles. -#}
 {% macro fraktion_from_urheber(expr) %}

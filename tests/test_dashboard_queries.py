@@ -25,7 +25,8 @@ from generate_series(timestamp '2025-01-01', timestamp '2026-12-31', interval 1 
 union all select -1, null, null, 'Unbekannt';
 
 create table lake.gold.dim_fraktion (fraktion_key varchar, fraktion_name varchar);
-insert into lake.gold.dim_fraktion values ('f_spd', 'SPD'), ('f_afd', 'AfD'), ('-1', 'Unbekannt');
+insert into lake.gold.dim_fraktion values ('f_spd', 'SPD'),
+    ('f_gruene', 'BÜNDNIS 90/DIE GRÜNEN'), ('-1', 'Unbekannt');
 
 create table lake.gold.dim_ressort (ressort_key varchar, ressort_name varchar);
 insert into lake.gold.dim_ressort values ('r_bmi', 'Bundesministerium des Innern'),
@@ -40,8 +41,8 @@ create table lake.gold.fct_aktivitaeten (
 );
 insert into lake.gold.fct_aktivitaeten values
     ('a1', 20261005, 'p1', 'f_spd', 'Rede', 21, '2026-10-05 10:00+00'),
-    ('a2', 20261005, 'p2', 'f_afd', 'Rede', 21, '2026-10-05 11:00+00'),
-    ('a3', 20261007, 'p2', 'f_afd', 'Frage', 21, '2026-10-07 09:00+00'),
+    ('a2', 20261005, 'p2', 'f_gruene', 'Rede', 21, '2026-10-05 11:00+00'),
+    ('a3', 20261007, 'p2', 'f_gruene', 'Frage', 21, '2026-10-07 09:00+00'),
     ('a4', 20261007, '-1', '-1', 'Antwort', 21, '2026-10-07 09:00+00'),
     ('a5', 20250310, 'p1', 'f_spd', 'Rede', 20, '2025-03-10 09:00+00');
 
@@ -121,7 +122,7 @@ def test_kpis_filter_by_wahlperiode(con: duckdb.DuckDBPyConnection) -> None:
 def test_rankings_leave_out_unknown_members(con: duckdb.DuckDBPyConnection) -> None:
     fraktionen = q.aktivitaeten_je_fraktion(con, OCTOBER)
     assert fraktionen.to_dict("records") == [
-        {"fraktion": "AfD", "anzahl": 2, "personen": 1},
+        {"fraktion": "BÜNDNIS 90/DIE GRÜNEN", "anzahl": 2, "personen": 1},
         {"fraktion": "SPD", "anzahl": 1, "personen": 1},
     ]
     ressorts = q.drucksachen_je_ressort(con, OCTOBER)
