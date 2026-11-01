@@ -220,7 +220,7 @@ services:
   # are written from .env into a pgpass file at start-up, so nothing secret is in the repo.
   # servers.json assumes the default usernames from .env.example (airflow / ducklake).
   pgadmin:
-    image: dpage/pgadmin4:9.18
+    image: dpage/pgadmin4:9.19
     environment:
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
