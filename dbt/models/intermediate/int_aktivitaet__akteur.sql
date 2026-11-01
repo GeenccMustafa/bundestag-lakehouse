@@ -1,5 +1,5 @@
 -- Who performed an Aktivität, as DIP printed it at the time, e.g.
---   "Dr. Götz Frömming, MdB, AfD"
+--   "Erika Mustermann, MdB, SPD"
 --   "Karin Prien, Bundesmin., Bundesministerium für Bildung, ..."
 --   "Timon Gremmels, MdBR (Staatsminister, ...), Hessen"
 -- For members of the Bundestag (MdB) the third part is their Fraktion on that day, which is
