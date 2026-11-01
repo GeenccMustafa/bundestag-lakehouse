@@ -9,8 +9,13 @@ dependencies = [
 ]
 
 [dependency-groups]
-# Everything dbt needs. Also installed into the Airflow image (in its own venv), pinned
-# through dbt/requirements.txt, which `uv export` generates from uv.lock (pre-commit hook).
+# The Streamlit dashboard on Gold (dashboard/). Reads DuckLake through DuckDB, like dbt.
+dashboard = [
+    "duckdb>=2.0",
+    "streamlit>=1.66.1",
+]
+# Everything dbt needs. Also installed into the Airflow image (in its own venv), pinned by
+# uv.lock: the Dockerfile exports this group with `uv export` at build time.
 dbt = [
     "dbt-core>=1.10",
     "dbt-duckdb>=1.9",
@@ -18,6 +23,7 @@ dbt = [
 ]
 dev = [
     {include-group = "dbt"},
+    {include-group = "dashboard"},
     "boto3-stubs[s3]>=1.43.118",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
@@ -40,9 +46,14 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "D"]
+# The SQL there is assembled from module constants only; every user value is a bound parameter.
+"dashboard/queries.py" = ["S608"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-m 'not integration'"
-markers = ["integration: needs the local Docker stack and network access"]
+addopts = "-m 'not integration and not lake'"
+markers = [
+    "integration: needs the local Docker stack and network access",
+    "lake: needs the sample-data lake from `dbt build --target ci`",
+]

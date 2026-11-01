@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard-ci",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["LAKE_TARGET=ci", "uv", "run", "--env-file", ".env", "streamlit", "run", "dashboard/app.py"],
+      "port": 8501
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--env-file", ".env", "streamlit", "run", "dashboard/app.py"],
+      "port": 8501
+    }
+  ]
+}

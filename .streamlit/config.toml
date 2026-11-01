@@ -1,0 +1,13 @@
+# Streamlit reads this from the directory it is started in (the repo root).
+[server]
+# Local only, like every other port of the stack.
+address = "127.0.0.1"
+port = 8501
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+# Light/dark follows the viewer's system setting; charts use the same accent in both.
+primaryColor = "#2a78d6"

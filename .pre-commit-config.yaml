@@ -31,9 +31,6 @@ repos:
     hooks:
       # Fails if pyproject.toml changed but uv.lock wasn't updated.
       - id: uv-lock
-      # Pinned dbt requirements for the Airflow image, kept in sync with uv.lock.
-      - id: uv-export
-        args: [--only-group, dbt, --no-emit-project, --frozen, --output-file, dbt/requirements.txt, --quiet]
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1

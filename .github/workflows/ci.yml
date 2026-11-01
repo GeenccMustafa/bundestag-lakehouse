@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # gitleaks scans the full history
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
 
@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
 
@@ -64,7 +64,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # slim CI parses the base branch
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
 
@@ -80,6 +80,9 @@ jobs:
       # plus everything downstream of it. `@` also selects every parent of those nodes (seeds,
       # upstream models), which must exist in the empty CI lake; `+state:modified+` would miss
       # parents of the downstream models, e.g. a seed joined in two levels below a changed source.
+      # `--indirect-selection cautious`: run only tests whose every parent is selected. The
+      # default (eager) also runs e.g. a relationships test from a selected parent to a table
+      # outside the selection, which does not exist in the empty CI lake.
       - name: Slim build (pull request)
         if: github.event_name == 'pull_request'
         run: |
@@ -91,7 +94,35 @@ jobs:
           echo "Changed vs $GITHUB_BASE_REF:"
           uv run dbt ls --target ci --select state:modified --state "$BASE/dbt/base-state" \
             --output name --quiet || true
-          uv run dbt build --target ci --select @state:modified --state "$BASE/dbt/base-state"
+          uv run dbt build --target ci --select @state:modified --state "$BASE/dbt/base-state" \
+            --indirect-selection cautious
+
+  dashboard:
+    # Builds Gold from the sample data, then renders the Streamlit app headless against it
+    # (streamlit.testing), so a model change that breaks a dashboard query fails here.
+    name: Dashboard smoke (sample data)
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROJECT_DIR: dbt
+      DBT_PROFILES_DIR: dbt
+      BRONZE_ROOT: ${{ github.workspace }}/dbt/sample_data/bronze
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+
+      - run: |
+          mkdir -p /tmp/bundestag-dbt-ci
+          uv run dbt deps
+          uv run dbt build --target ci
+
+      - run: uv run pytest -m lake
 
   compose:
     name: Validate docker-compose.yml

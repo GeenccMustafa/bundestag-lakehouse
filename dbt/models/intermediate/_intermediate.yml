@@ -47,13 +47,13 @@ unit_tests:
     given:
       - input: ref('stg_dip__aktivitaet')
         rows:
-          - {aktivitaet_id: "1", person_id: "10", titel: "Dr. Götz Frömming, MdB, AfD"}
+          - {aktivitaet_id: "1", person_id: "10", titel: "Erika Mustermann, MdB, SPD"}
           - {aktivitaet_id: "2", person_id: "11", titel: "Karin Prien, Bundesmin., Bundesministerium für Bildung, Familie"}
           - {aktivitaet_id: "3", person_id: "12", titel: "Timon Gremmels, MdBR (Staatsminister, Minister für Wissenschaft), Hessen"}
           - {aktivitaet_id: "4", person_id: "13", titel: "Julia Klöckner, Bundestagspräs."}
     expect:
       rows:
-        - {aktivitaet_id: "1", akteur_name: "Dr. Götz Frömming", akteur_rolle: MdB, fraktion: AfD}
+        - {aktivitaet_id: "1", akteur_name: "Erika Mustermann", akteur_rolle: MdB, fraktion: SPD}
         - {aktivitaet_id: "2", akteur_name: "Karin Prien", akteur_rolle: "Bundesmin.", fraktion: null}
         - {aktivitaet_id: "3", akteur_name: "Timon Gremmels", akteur_rolle: Bundesrat, fraktion: null}
         - {aktivitaet_id: "4", akteur_name: "Julia Klöckner", akteur_rolle: "Bundestagspräs.", fraktion: null}
