@@ -2,6 +2,10 @@
 -- snapshot. Names come from the person entity when we have it, otherwise from the latest
 -- Aktivität that mentions the person; the current Fraktion is the one on their most recent
 -- activity as MdB.
+--
+-- "Latest" must be deterministic: several activities can share date and update time (a
+-- Bundesrat member speaking once as president, once as member). Without the aktivitaet_id
+-- tie-breaker the pick changed between runs and snp_person recorded fake versions.
 with from_person as (
     -- The person entity's own title also carries role and Fraktion ("Jan Krampe, MdB,
     -- DIE LINKE"); build a plain name instead so both sources look the same.
@@ -17,7 +21,8 @@ latest_activity as (
     from {{ ref('stg_dip__aktivitaet') }} as a
     inner join {{ ref('int_aktivitaet__akteur') }} as k using (aktivitaet_id)
     qualify row_number() over (
-        partition by a.person_id order by a.datum desc, a.aktualisiert_at desc
+        partition by a.person_id
+        order by a.datum desc, a.aktualisiert_at desc, a.aktivitaet_id desc
     ) = 1
 ),
 
@@ -29,7 +34,8 @@ latest_fraktion as (
     inner join {{ ref('int_aktivitaet__akteur') }} as k using (aktivitaet_id)
     where k.fraktion is not null
     qualify row_number() over (
-        partition by a.person_id order by a.datum desc, a.aktualisiert_at desc
+        partition by a.person_id
+        order by a.datum desc, a.aktualisiert_at desc, a.aktivitaet_id desc
     ) = 1
 ),
 
