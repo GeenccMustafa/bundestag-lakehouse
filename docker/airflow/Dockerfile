@@ -1,7 +1,7 @@
 # Airflow + Cosmos, with dbt in its own virtualenv so dbt's dependencies never clash with
 # Airflow's. dbt versions are pinned (with hashes) by uv.lock, so Airflow runs exactly the dbt
 # the repo is tested with.
-FROM apache/airflow:3.3.2-python3.12
+FROM apache/airflow:3.4.0-python3.12
 
 ARG AIRFLOW_VERSION=3.3.2
 ARG COSMOS_VERSION=1.15.1
